@@ -1,5 +1,6 @@
 require "smalruby"
 require 'set'
+require 'matrix'
 
 cat1 = Character.new(costume: "costume1:cat1.png", x: 200, y: 200, angle: 0)
 include AI
@@ -118,87 +119,47 @@ cat1.on(:start) do
 		end
 	end
 
-	# クラスタをランダムに割り振る
-	def random_clusterize data, cluster_num
-		data_num = data.size
-		clusters = []
-		cluster_num.times do |i|
-		_start = (i*data_num/cluster_num).to_i
-		_end = (i!=cluster_num-1) ? ((i+1)*data_num/cluster_num).to_i : data_num
-		clusters[i] = data[_start..._end]
-		end
-	
-		clusters
-	end
-	
-	# クラスタの中心座標を取得
-	def get_center_point cluster
-		result = [0.0, 0.0]
-		cluster_size = cluster.size.to_f
-		cluster.each do |point|
-		result[0] += point[0]
-		result[1] += point[1]
-		end
-		result[0] /= cluster_size
-		result[1] /= cluster_size
-	
-		result
-	end
-	
-	# 点の距離を取得
-	def distance point1, point2
-		(point1[0]-point2[0])**2 + (point1[1]-point2[1])**2
-	end
-	
-	# dataをcluster_numにクラスタライズ
-	def clusterize data, cluster_num
-		center_points = []
-	
-		# ランダムに分割
-		data.shuffle!
-		clusters = random_clusterize data, cluster_num
-	
-		# 仮中心を作る
-		clusters.each_with_index do |cluster,i|
-		center_points[i] = get_center_point cluster
-		end
-	
-		# 終わるまでループ
-		while(true) do
-		tmp_clusters = []
-		cluster_num.times do |cluster_index|
-			tmp_clusters[cluster_index] = []
-		end
-		data.each do |datum|
-			tmp_min_distances = Float::INFINITY
-			minimum_index = 0
-			center_points.each_with_index do |center_point, center_point_index|
-			# 重心との距離を計算
-			dist = distance(center_point, datum)
-			if distance(center_point, datum) < tmp_min_distances
-				tmp_min_distances = dist
-				minimum_index = center_point_index
+	def k_means_clustering(n, data_points, max_iterations = 100)
+		# 初期値としてランダムにn個の中心点を選択
+		centroids = data_points.sample(n)
+		
+		clusters = Array.new(n) { [] }
+		
+		max_iterations.times do
+			# 各データポイントを最も近い中心点に割り当てる
+			clusters = Array.new(n) { [] }
+			data_points.each do |point|
+				distances = centroids.map { |centroid| euclidean_distance(point, centroid) }
+				closest_centroid_index = distances.each_with_index.min[1]
+				clusters[closest_centroid_index] << point
 			end
+		
+			# 新しい中心点を計算
+			new_centroids = clusters.map do |cluster|
+				cluster.empty? ? centroids[clusters.index(cluster)] : mean_point(cluster)
 			end
-			# 近い重心を判断
-			tmp_clusters[minimum_index] << datum
+		
+			break if new_centroids == centroids # 中心点が変化しなければ終了
+		
+			centroids = new_centroids
 		end
+		
+		{ clusters: clusters, centroids: centroids }
+	end
 	
-		# 仮中心を決定
-		cluster_num.times do |index|
-			center_points[index] = get_center_point tmp_clusters[index]
+	# ユークリッド距離を計算
+	def euclidean_distance(point1, point2)
+		Math.sqrt(point1.zip(point2).map { |x, y| (x - y)**2 }.sum)
+	end
+	
+	# クラスタの平均点を計算
+	def mean_point(points)
+		dimensions = points.first.size
+		sums = Array.new(dimensions, 0)
+		points.each do |point|
+			point.each_with_index { |value, index| sums[index] += value }
 		end
-	
-		# クラスタの決定
-		if tmp_clusters.to_set == clusters.to_set
-			break
-		end
-	
-		clusters = tmp_clusters
-		end
-	
-		# クラスタを返却
-		return clusters, center_points
+		sums.map { |sum| sum / points.size.to_f }
 	end
 
 	loop do
@@ -256,64 +217,80 @@ cat1.on(:start) do
 
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
 		if turn >= 9 && !not_searching_flag && !after_bomb
-			begin
-				# クラスタリング
-				clusters_num = 5
-				clusters, center_points = clusterize all_treasures, clusters_num
-				p :clusters, clusters
-				p :center_points, center_points
+			cluster_n = [5, all_treasures.size].min
+			if cluster_n > 0
+				result = k_means_clustering(cluster_n, all_treasures)
+			end
+			clusters = result[:clusters]
+			centroids = result[:centroids]
 
-				# MSE（平均平方誤差）を計算
+			if cluster_n == 5
 				mse = 0
 				clusters.each do |cluster|
 					index_of_cluster = clusters.index(cluster)
-					center_point = center_points[index_of_cluster]
-					p :center_point, center_point
+					centroid = centroids[index_of_cluster]
+					p :centroid, centroid
 					sum_distance = 0
 					cluster.each do |data|
-						distance = Math.sqrt((center_point[0] - data[0]).abs**2 + (center_point[1] - data[1]).abs**2)
+						distance = Math.sqrt((centroid[0] - data[0]).abs**2 + (centroid[1] - data[1]).abs**2)
 						sum_distance += distance
 					end
 					average_distance = sum_distance / cluster.length
-					
+							
 					mse += average_distance
 				end
 				mse = mse / clusters.length
 
-				clusters_num += 1
+				# MSE（平均平方誤差） < 4になるまでクラスタ数を増やす
+				loop do
+					if mse < 4
+						break
+					end
+					mse = 0
+					cluster_n += 1
+					result = k_means_clustering(cluster_n, all_treasures)
+					clusters = result[:clusters]
+					centroids = result[:centroids]
 
-				p :mse, mse
-			end while mse > 6
-
-			i = 0
-			clusters_num.times do
-				p "clusters[#{i}]", clusters[i]
-				i+=1
+					clusters.each do |cluster|
+						index_of_cluster = clusters.index(cluster)
+						centroid = centroids[index_of_cluster]
+						p :centroid, centroid
+						sum_distance = 0
+						cluster.each do |data|
+							distance = Math.sqrt((centroid[0] - data[0]).abs**2 + (centroid[1] - data[1]).abs**2)
+							sum_distance += distance
+						end
+						average_distance = sum_distance / cluster.length
+								
+						mse += average_distance
+					end
+					mse = mse / clusters.length
+				end
 			end
 
+			puts "Clusters(n=#{cluster_n}) = #{result[:clusters]}"
+			puts "Centroids: #{result[:centroids]}"
+			puts "MSE = #{mse}"
+
 			if other_x == (nil) || other_y == (nil)
-				if !checked_item_exsistence
-					get_map_area(routes[-1][0], routes[-1][1])
-					checked_item_exsistence = true
+				rand_x = rand(1..3)
+				rand_y = rand(1..3)
+				if rand_x == 1
+					rand_x = 3
+				elsif rand_x == 2
+					rand_x = 8
 				else
-					rand_x = rand(1..3)
-					rand_y = rand(1..3)
-					if rand_x == 1
-						rand_x = 3
-					elsif rand_x == 2
-						rand_x = 8
-					else
-						rand_x = 13
-					end
-					if rand_y == 1
-						rand_y = 3
-					elsif rand_y == 2
-						rand_y = 8
-					else
-						rand_y = 13
-					end
-					get_map_area(rand_x, rand_y)
+					rand_x = 13
 				end
+				if rand_y == 1
+					rand_y = 3
+				elsif rand_y == 2
+					rand_y = 8
+				else
+					rand_y = 13
+				end
+				get_map_area(rand_x, rand_y)
 
 				if !(other_player_x == nil)
 					other_x = other_player_x
@@ -624,7 +601,6 @@ cat1.on(:start) do
 			p :prev_routes, prev_routes
 			if !(routes.all? { |route| prev_routes.include?(route) })
 				p "The route has changed from prev turn."
-				checked_item_exsistence = false
 			end
 		end
 		p :num_of_dynamite_you_have, num_of_dynamite_you_have
