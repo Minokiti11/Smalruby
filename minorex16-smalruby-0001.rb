@@ -225,7 +225,7 @@ cat1.on(:start) do
 				p :clusters, clusters
 				p :centroids, centroids
 				i = 0
-				until result[:clusters].include?([])
+				while result[:clusters].include?([])
 					if i > 5
 						break
 					end
