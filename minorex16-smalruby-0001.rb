@@ -223,6 +223,8 @@ cat1.on(:start) do
 			end
 			clusters = result[:clusters]
 			centroids = result[:centroids]
+			p :clusters, clusters
+			p :centroids, centroids
 
 			if cluster_n == 5
 				mse = 0
@@ -236,7 +238,7 @@ cat1.on(:start) do
 						sum_distance += distance
 					end
 					average_distance = sum_distance / cluster.length
-							
+					
 					mse += average_distance
 				end
 				mse = mse / clusters.length
