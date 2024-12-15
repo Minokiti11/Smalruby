@@ -220,11 +220,20 @@ cat1.on(:start) do
 			cluster_n = [5, all_treasures.size].min
 			if cluster_n > 0
 				result = k_means_clustering(cluster_n, all_treasures)
+				clusters = result[:clusters]
+				centroids = result[:centroids]
+				p :clusters, clusters
+				p :centroids, centroids
+				i = 0
+				until result[:clusters].include?([])
+					if i > 5
+						break
+					end
+					result = k_means_clustering(cluster_n, all_treasures)
+					i += 1
+				end
 			end
-			clusters = result[:clusters]
-			centroids = result[:centroids]
-			p :clusters, clusters
-			p :centroids, centroids
+
 
 			if cluster_n == 5
 				mse = 0
@@ -243,7 +252,7 @@ cat1.on(:start) do
 				end
 				mse = mse / clusters.length
 
-				# MSE（平均平方誤差） < 4になるまでクラスタ数を増やす
+				# MSE（平均平方誤差）< 4になるまでクラスタ数を増やす
 				loop do
 					if mse < 4
 						break
