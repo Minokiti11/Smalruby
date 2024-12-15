@@ -355,6 +355,7 @@ cat1.on(:start) do
 			dst_x, dst_y = dst[0], dst[1]
 			except_cells = except
 			data = make_data(map_all.map{|i| i=i.dup}, except_cells)
+			p "data: \n", data
 			g = DijkstraSearch::Graph.new(data)
 			sid = "m#{src_x}_#{src_y}"
 			gid = "m#{dst_x}_#{dst_y}"
