@@ -643,6 +643,8 @@ cat1.on(:start) do
 			set_dynamite()
 			num_of_dynamite_you_have -= 1
 			after_bomb = true
+			turn += 1
+			turn_over
 		end
 
 		move_to(routes[1])
