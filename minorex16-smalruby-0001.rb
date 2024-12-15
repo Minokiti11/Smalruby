@@ -624,20 +624,12 @@ cat1.on(:start) do
 			set_dynamite(routes[1])
 			num_of_dynamite_you_have -= 1
 			after_bomb = true
-			if turn < 9
-				turn += 1
-				turn_over
-			end
 		end
 
 		if kowaseru.include?(routes[1])
 			set_dynamite()
 			num_of_dynamite_you_have -= 1
 			after_bomb = true
-			if turn < 9
-				turn += 1
-				turn_over
-			end
 		end
 
 		move_to(routes[1])
