@@ -515,8 +515,51 @@ cat1.on(:start) do
 						end
 						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
 					end
-					except.push([goal_x, goal_y])
-					break
+
+					if routes[1] == nil
+						traps_c.each do |c|
+							except.delete(c)
+						end
+						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+
+						if routes[1] == nil
+							traps_d.each do |d|
+								except.delete(d)
+							end
+							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+
+							if routes[1] == nil
+								p_east = [player_x + 1, player_y]
+								p_west = [player_x - 1, player_y]
+								p_north = [player_x, player_y + 1]
+								p_south = [player_x, player_y - 1]
+								p_arround = [p_east, p_west, p_north, p_south]
+								traps = locate_objects(cent: ([8, 8]), sq_size: 15)
+								p_around.each do |a|
+									if traps.include?(a) || [enemy_x, enemy_y] == a || map(a) == 1 || map(a) == 2
+										p_around.delete(a)
+									end
+								end
+								if p_around.empty?
+									turn += 1
+									turn_over
+								else
+									routes = [[player_x, player_y], p_around[0]]
+								end
+							else
+								except.push([goal_x, goal_y])
+								break
+							end
+						else
+							except.push([goal_x, goal_y])
+							break
+						end
+
+					else
+						except.push([goal_x, goal_y])
+						break
+					end
+
 				else
 					p :treasures_i, treasures[i]
 					routes = dijkstra_route([player_x, player_y], treasures[i], except)
