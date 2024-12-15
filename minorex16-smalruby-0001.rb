@@ -474,7 +474,15 @@ cat1.on(:start) do
 		i = 0
         p :other_player_pos, [other_player_x, other_player_y]
         if !(other_player_x == nil)
-            while routes[1] == nil || calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C", "D"]))).length < routes.length
+			other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C", "D"])))
+			other_player_routes_length = other_player_routes
+			if other_player_routes[1] == nil
+				other_player_routes_length = 100
+			else
+				other_player_routes_length = other_player_routes.length
+			end
+
+            while routes[1] == nil || other_player_routes_length < routes.length
 				if treasures[i] == nil && i != 0
 					p "Go to the goal."
 					kowaseru.each do |k|
