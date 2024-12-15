@@ -392,7 +392,7 @@ cat1.on(:start) do
 							res << [2, "m#{dx}_#{dy}"]
 							# 壊せる壁
 							when 5
-								res << [1.5, "m#{dx}_#{dy}"]
+								res << [2, "m#{dx}_#{dy}"]
 							# 未探査セル（通路扱い）
 							when -1
 							res << [4, "m#{dx}_#{dy}"]
