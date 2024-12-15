@@ -230,6 +230,10 @@ cat1.on(:start) do
 						break
 					end
 					result = k_means_clustering(cluster_n, all_treasures)
+					clusters = result[:clusters]
+					centroids = result[:centroids]
+					p :clusters, clusters
+					p :centroids, centroids
 					i += 1
 				end
 			end
