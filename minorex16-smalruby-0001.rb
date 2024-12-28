@@ -512,7 +512,7 @@ cat1.on(:start) do
 			end
 
             while routes[1] == nil || other_player_routes_length < routes.length
-				if treasures[i] == nil && i != 0
+				if i + 1 > treasures.length && i != 0
 					p "Go to the goal."
 					kowaseru.each do |k|
 						except.delete(k)
@@ -568,7 +568,7 @@ cat1.on(:start) do
             end
         else
             while routes[1] == nil
-				if treasures[i] == nil
+				if treasures[i] == nil || i + 1 > treasures.length
 					kowaseru.each do |k|
 						except.delete(k)
 					end
