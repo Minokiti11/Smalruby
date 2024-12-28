@@ -336,6 +336,7 @@ cat1.on(:start) do
 				end
 			end
 		end
+		
 
 		if after_bomb
 			get_map_area(player_x, player_y)
