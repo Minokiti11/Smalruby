@@ -511,6 +511,9 @@ cat1.on(:start) do
 				other_player_routes_length = other_player_routes.length
 			end
 
+			if routes[1] == nil || other_player_routes_length < routes.length
+				time1 = Time.now
+			end
             while routes[1] == nil || other_player_routes_length < routes.length
 				if i + 1 > treasures.length && i != 0
 					p "Go to the goal."
@@ -565,6 +568,9 @@ cat1.on(:start) do
 					p :routes, routes
 					i += 1
 				end
+				p :i, i
+				time2 = Time.now - time1
+				p :time2, time2
             end
         else
             while routes[1] == nil
