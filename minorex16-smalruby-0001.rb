@@ -271,9 +271,10 @@ cat1.on(:start) do
 				end
 				mse = mse / clusters.length
 
+				time1 = Time.now
 				# MSE（平均平方誤差）< 4になるまでクラスタ数を増やす
 				loop do
-					if mse < 4
+					if mse < 2
 						break
 					end
 					mse = 0
@@ -296,6 +297,8 @@ cat1.on(:start) do
 					end
 					mse = mse / clusters.length
 				end
+				time2 = Time.now - time1
+				p "Took #{time2} seconds to find the clusters."
 			end
 
 			puts "Clusters(n=#{cluster_n}) = #{result[:clusters]}"
@@ -336,6 +339,7 @@ cat1.on(:start) do
 				end
 			end
 		end
+		
 
 		if after_bomb
 			get_map_area(player_x, player_y)
@@ -513,65 +517,66 @@ cat1.on(:start) do
 
 			if routes[1] == nil || other_player_routes_length < routes.length
 				time1 = Time.now
-			end
-            while routes[1] == nil || other_player_routes_length < routes.length
-				if i + 1 > treasures.length && i != 0
-					p "Go to the goal."
-					kowaseru.each do |k|
-						except.delete(k)
-					end
-					except.delete([goal_x, goal_y])
-					routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
-					kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
-
-					#手持ちのダイナマイトで足りない場合
-					if kowaseru_in_routes > num_of_dynamite_you_have
-						#ダイナマイトを通らない経路を調べる
+				while routes[1] == nil || other_player_routes_length < routes.length
+					if i + 1 > treasures.length && i != 0
+						p "Go to the goal."
 						kowaseru.each do |k|
-							except.push(k)
+							except.delete(k)
 						end
+						except.delete([goal_x, goal_y])
 						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
-					end
-
-					if routes[1] == nil
-						traps_c.each do |c|
-							except.delete(c)
-						end
-						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
-
-						if routes[1] == nil
-							traps_d.each do |d|
-								except.delete(d)
+						kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+	
+						#手持ちのダイナマイトで足りない場合
+						if kowaseru_in_routes > num_of_dynamite_you_have
+							#ダイナマイトを通らない経路を調べる
+							kowaseru.each do |k|
+								except.push(k)
 							end
 							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
-
+						end
+	
+						if routes[1] == nil
+							traps_c.each do |c|
+								except.delete(c)
+							end
+							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+	
 							if routes[1] == nil
-								#どこにも行けない場合は妨害キャラクタや減点アイテムがない隣のセルに移動
-								just_move()
+								traps_d.each do |d|
+									except.delete(d)
+								end
+								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+	
+								if routes[1] == nil
+									#どこにも行けない場合は妨害キャラクタや減点アイテムがない隣のセルに移動
+									just_move()
+								else
+									except.push([goal_x, goal_y])
+									break
+								end
 							else
 								except.push([goal_x, goal_y])
 								break
 							end
+	
 						else
 							except.push([goal_x, goal_y])
 							break
 						end
-
+	
 					else
-						except.push([goal_x, goal_y])
-						break
+						p :treasures_i, treasures[i]
+						routes = dijkstra_route([player_x, player_y], treasures[i], except)
+						p :routes, routes
+						i += 1
 					end
-
-				else
-					p :treasures_i, treasures[i]
-					routes = dijkstra_route([player_x, player_y], treasures[i], except)
-					p :routes, routes
-					i += 1
+					p :i, i
 				end
-				p :i, i
 				time2 = Time.now - time1
 				p :time2, time2
-            end
+			end
+
         else
             while routes[1] == nil
 				if treasures[i] == nil || i + 1 > treasures.length
