@@ -147,9 +147,13 @@ cat1.on(:start) do
 		{ clusters: clusters, centroids: centroids }
 	end
 	
-	# ユークリッド距離を計算
+	# 距離を計算(壁を考慮するためダイクストラ法で求める)
 	def euclidean_distance(point1, point2)
-		Math.sqrt(point1.zip(point2).map { |x, y| (x - y)**2 }.sum)
+		if calc_route(src: point1, dst: point2)[1] != nil
+			return calc_route(src: point1, dst: point2).length
+		else
+			return 100
+		end
 	end
 	
 	# クラスタの平均点を計算
