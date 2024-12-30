@@ -163,7 +163,7 @@ cat1.on(:start) do
 		points.each do |point|
 			point.each_with_index { |value, index| sums[index] += value }
 		end
-		sums.map { |sum| sum / points.size.to_f }
+		sums.map { |sum| (sum / points.size.to_f).round }
 	end
 
 	def just_move()
