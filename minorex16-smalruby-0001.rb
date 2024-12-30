@@ -138,8 +138,20 @@ cat1.on(:start) do
 			new_centroids = clusters.map do |cluster|
 				cluster.empty? ? centroids[clusters.index(cluster)] : mean_point(cluster)
 			end
-		
-			break if (new_centroids - centroids).abs < 0.5 # 中心点が変化しなければ終了
+
+			# 新旧の中心点の差が全て0.5以下かチェック
+			all_close = true
+			centroids.each_with_index do |old_centroid, i|
+				new_centroid = new_centroids[i]
+				old_centroid.each_with_index do |old_val, j|
+					if (new_centroid[j] - old_val).abs > 0.5
+						all_close = false
+						break
+					end
+				end
+				break unless all_close
+			end
+			break if all_close
 		
 			centroids = new_centroids
 		end
