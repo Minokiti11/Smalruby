@@ -139,7 +139,7 @@ cat1.on(:start) do
 				cluster.empty? ? centroids[clusters.index(cluster)] : mean_point(cluster)
 			end
 		
-			break if new_centroids == centroids # 中心点が変化しなければ終了
+			break if (new_centroids - centroids).abs < 0.5 # 中心点が変化しなければ終了
 		
 			centroids = new_centroids
 		end
