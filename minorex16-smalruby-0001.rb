@@ -24,6 +24,7 @@ cat1.on(:start) do
 	routes = nil
 	checked_item_exsistence = true
 	prev_routes = nil
+	EXCEPT = [[goal_x, goal_y],[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[0,15],[0,16],[1,0],[2,0],[3,0],[4,0],[0,4],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[16,1],[16,2],[16,3],[16,4],[16,5],[16,6],[16,7],[16,8],[16,9],[16,10],[16,11],[16,12],[16,13],[16,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]
 
 	# ダイクストラ法により最短経路を求める
 	# 点
@@ -119,13 +120,16 @@ cat1.on(:start) do
 		end
 	end
 
-	def k_means_clustering(n, data_points, max_iterations = 100)
+
+	def k_means_clustering(n, data_points, max_iterations = 50)
 		# 初期値としてランダムにn個の中心点を選択
 		centroids = data_points.sample(n)
+		# p "centroids = #{centroids}"
 		
 		clusters = Array.new(n) { [] }
 		
 		max_iterations.times do
+			time1 = Time.now
 			# 各データポイントを最も近い中心点に割り当てる
 			clusters = Array.new(n) { [] }
 			data_points.each do |point|
@@ -133,39 +137,46 @@ cat1.on(:start) do
 				closest_centroid_index = distances.each_with_index.min[1]
 				clusters[closest_centroid_index] << point
 			end
+			time2 = Time.now - time1
+			# p "Took #{time2} seconds to check the centroids."
 		
 			# 新しい中心点を計算
 			new_centroids = clusters.map do |cluster|
 				cluster.empty? ? centroids[clusters.index(cluster)] : mean_point(cluster)
 			end
 
+
 			# 新旧の中心点の差が全て0.5以下かチェック
 			all_close = true
 			centroids.each_with_index do |old_centroid, i|
 				new_centroid = new_centroids[i]
 				old_centroid.each_with_index do |old_val, j|
-					if (new_centroid[j] - old_val).abs > 0.5
+					if (new_centroid[j] - old_val).abs > 1
 						all_close = false
 						break
 					end
 				end
+				# 中心点の移動が大きい場合は次のcentroidの確認をスキップ
 				break unless all_close
 			end
+
 			break if all_close
 		
 			centroids = new_centroids
 		end
 		
+
 		{ clusters: clusters, centroids: centroids }
 	end
 	
-	# 距離を計算(壁を考慮するためダイクストラ法で求める)
+	# 距離を計算
 	def euclidean_distance(point1, point2)
-		if calc_route(src: point1, dst: point2)[1] != nil
-			return calc_route(src: point1, dst: point2).length
-		else
-			return 100
-		end
+		# if dijkstra_route(point1, point2, EXCEPT)[1] != nil
+		# 	return dijkstra_route(point1, point2, EXCEPT).length
+		# else
+		# 	return 100
+		# end
+		Math.sqrt(point1.zip(point2).map { |x, y| (x - y)**2 }.sum)
 	end
 	
 	# クラスタの平均点を計算
@@ -199,6 +210,68 @@ cat1.on(:start) do
 	end
 
 	loop do
+		# 2点間の移動経路を[[x, y], ...]形式で返す
+		#
+		# src: [x, y] 始点(省略時はプレイヤーの現在座標)
+		# dst: [x, y] 終点(省略時はゴール地点)
+		# except_cells: [[x1, y1], ...] 通りたくない場所(省略可)
+		def dijkstra_route(start, dst, except)
+			src_x, src_y = start[0], start[1]
+			dst_x, dst_y = dst[0], dst[1]
+			except_cells = except
+			data = make_data(map_all.map{|i| i=i.dup}, except_cells)
+			g = DijkstraSearch::Graph.new(data)
+			sid = "m#{src_x}_#{src_y}"
+			gid = "m#{dst_x}_#{dst_y}"
+			route = g.get_route(sid, gid)
+			return route
+		end
+
+		# DijkstraSearchのためのグラフ構造を返す
+		def make_data(map,except_cells)
+			except_cells.each do |cell|
+				ex, ey = cell
+				map[ey][ex] = 1
+			end
+			data = {}
+			map.size.times do |y|
+				map.first.size.times do |x|
+					res = []
+					[[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]].each do |dx, dy|
+						next if dx < 0 || dy < 0
+						if map[dy] && map[dy][dx]
+							case map[dy][dx]
+							# 加点アイテムの扱い（通路）
+							when "a".."e"
+							res << [1, "m#{dx}_#{dy}"]
+							# 減点アイテムの扱い（通路）
+							when "A".."D"
+							res << [1, "m#{dx}_#{dy}"]
+							# 通路
+							when 0
+							res << [1, "m#{dx}_#{dy}"]
+							# 水たまり
+							when 4
+							res << [2, "m#{dx}_#{dy}"]
+							# 壊せる壁
+							when 5
+								res << [2, "m#{dx}_#{dy}"]
+							# 未探査セル（通路扱い）
+							when -1
+							res << [4, "m#{dx}_#{dy}"]
+							# 壁
+							when 1, 2
+							# 通れないので辺として追加しない
+							else
+							res << [3, "m#{dx}_#{dy}"]
+							end
+						end
+					end
+					data["m#{x}_#{y}"] = res
+				end
+			end
+			return data
+		end
 		p :not_searching_flag, not_searching_flag
 		p :after_bomb, after_bomb
 		grid_centers = [[3,3], [3,8], [3,13], [8,3], [8,8], [8,13], [13,3], [13,8], [13,13]]
@@ -288,38 +361,84 @@ cat1.on(:start) do
 				mse = mse / clusters.length
 
 				time1 = Time.now
-				# MSE（平均平方誤差）< 4になるまでクラスタ数を増やす
+				final_result = {}
+				# MSE（平均平方誤差）< 1.5になるまでクラスタ数を増やす
+				# 各クラスタ数ごとに10回試し、MSEが最小となるクラスタリングを採用
 				loop do
-					if mse < 2
-						break
-					end
-					mse = 0
-					cluster_n += 1
-					result = k_means_clustering(cluster_n, all_treasures)
-					clusters = result[:clusters]
-					centroids = result[:centroids]
-
-					clusters.each do |cluster|
-						index_of_cluster = clusters.index(cluster)
-						centroid = centroids[index_of_cluster]
-						sum_distance = 0
-						cluster.each do |data|
-							distance = Math.sqrt((centroid[0] - data[0]).abs**2 + (centroid[1] - data[1]).abs**2)
-							sum_distance += distance
+					distances_array = []
+					clustering_results = {}
+					10.times do |i|
+						result = k_means_clustering(cluster_n, all_treasures)
+						clusters = result[:clusters]
+						centroids = result[:centroids]
+						j = 0
+						while result[:clusters].include?([])
+							if j > 5
+								break
+							end
+							result = k_means_clustering(cluster_n, all_treasures)
+							clusters = result[:clusters]
+							centroids = result[:centroids]
+							j += 1
 						end
-						average_distance = sum_distance / cluster.length
-						
-						mse += average_distance
+
+						distances_array = []
+						clusters.each do |cluster|
+							index_of_cluster = clusters.index(cluster)
+							centroid = centroids[index_of_cluster]
+							sum_distance = 0
+							cluster.each do |data|
+								distance = Math.sqrt((centroid[0] - data[0]).abs**2 + (centroid[1] - data[1]).abs**2)
+								sum_distance += distance
+							end
+							average_distance = sum_distance / cluster.length
+							distances_array.push(average_distance)
+						end
+						mse = distances_array.sum / clusters.length
+
+						clustering_results[i] = {
+							clusters: clusters,
+							centroids: centroids,
+							mse: mse,
+							max_distance: distances_array.max
+						}
+
+						if distances_array.max <= 1.2 && mse < 1.2
+							break
+						end
 					end
-					mse = mse / clusters.length
+
+					final_result = {}
+					min_mse = 100
+					clustering_results.each do |key, value|
+						if value[:max_distance] <= 1.2
+							if value[:mse] < min_mse
+								min_mse = value[:mse]
+								final_result = {
+									clusters: value[:clusters],
+									centroids: value[:centroids],
+									mse: value[:mse],
+									max_distance: value[:max_distance]
+								}
+							end
+						end
+					end
+					p :final_result, final_result
+					if final_result.empty?
+						cluster_n += 1
+					else
+						if final_result[:max_distance] <= 1.2 && final_result[:mse] < 1.2
+							break
+						end
+					end
 				end
 				time2 = Time.now - time1
 				p "Took #{time2} seconds to find the clusters."
 			end
 
-			puts "Clusters(n=#{cluster_n}) = #{result[:clusters]}"
-			puts "Centroids: #{result[:centroids]}"
-			puts "MSE = #{mse}"
+			puts "Clusters(n=#{cluster_n}) = #{final_result[:clusters]}"
+			puts "Centroids: #{final_result[:centroids]}"
+			puts "MSE = #{final_result[:mse]}"
 
 			if other_x == (nil) || other_y == (nil)
 				rand_x = rand(1..3)
@@ -394,74 +513,12 @@ cat1.on(:start) do
 			treasures_e.delete([got_item_pos[0], got_item_pos[1]])
 		end
 
-		# 2点間の移動経路を[[x, y], ...]形式で返す
-		#
-		# src: [x, y] 始点(省略時はプレイヤーの現在座標)
-		# dst: [x, y] 終点(省略時はゴール地点)
-		# except_cells: [[x1, y1], ...] 通りたくない場所(省略可)
-		def dijkstra_route(start, dst, except)
-			src_x, src_y = start[0], start[1]
-			dst_x, dst_y = dst[0], dst[1]
-			except_cells = except
-			data = make_data(map_all.map{|i| i=i.dup}, except_cells)
-			g = DijkstraSearch::Graph.new(data)
-			sid = "m#{src_x}_#{src_y}"
-			gid = "m#{dst_x}_#{dst_y}"
-			route = g.get_route(sid, gid)
-			return route
-		end
-
-		# DijkstraSearchのためのグラフ構造を返す
-		def make_data(map,except_cells)
-			except_cells.each do |cell|
-				ex, ey = cell
-				map[ey][ex] = 1
-			end
-			data = {}
-			map.size.times do |y|
-				map.first.size.times do |x|
-					res = []
-					[[x, y - 1], [x, y + 1], [x - 1, y], [x + 1, y]].each do |dx, dy|
-						next if dx < 0 || dy < 0
-						if map[dy] && map[dy][dx]
-							case map[dy][dx]
-							# 加点アイテムの扱い（通路）
-							when "a".."e"
-							res << [1, "m#{dx}_#{dy}"]
-							# 減点アイテムの扱い（通路）
-							when "A".."D"
-							res << [1, "m#{dx}_#{dy}"]
-							# 通路
-							when 0
-							res << [1, "m#{dx}_#{dy}"]
-							# 水たまり
-							when 4
-							res << [2, "m#{dx}_#{dy}"]
-							# 壊せる壁
-							when 5
-								res << [2, "m#{dx}_#{dy}"]
-							# 未探査セル（通路扱い）
-							when -1
-							res << [4, "m#{dx}_#{dy}"]
-							# 壁
-							when 1, 2
-							# 通れないので辺として追加しない
-							else
-							res << [3, "m#{dx}_#{dy}"]
-							end
-						end
-					end
-					data["m#{x}_#{y}"] = res
-				end
-			end
-			return data
-		end
-
 
 		#通らない座標
 		except = [[goal_x, goal_y],[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[0,15],[0,16],[1,0],[2,0],[3,0],[4,0],[0,4],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[16,1],[16,2],[16,3],[16,4],[16,5],[16,6],[16,7],[16,8],[16,9],[16,10],[16,11],[16,12],[16,13],[16,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]
 		except_without_goal = [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[0,15],[0,16],[1,0],[2,0],[3,0],[4,0],[0,4],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[16,1],[16,2],[16,3],[16,4],[16,5],[16,6],[16,7],[16,8],[16,9],[16,10],[16,11],[16,12],[16,13],[16,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]
 		traps = locate_objects(cent:[8, 8], sq_size: 15)
+		water_cell = locate_objects(cent:[8, 8], sq_size: 15, objects: ([4]))
 
 		traps_a = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["A"]))
 		traps_b = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["B"]))
@@ -622,8 +679,9 @@ cat1.on(:start) do
         end
 
 		#35ターン以上でアイテムに行くとゴールできない場合
-		
-		if turn >= 35 && routes.length - 1 + dijkstra_route([routes[-1][0], routes[-1][1]], [goal_x, goal_y], traps_d).length - 1 > 51 - turn
+		route_to_goal = dijkstra_route([routes[-1][0], routes[-1][1]], [goal_x, goal_y], traps_d)
+		num_of_water_in_route_to_goal = route_to_goal.select{ |r| water_cell.include?(r) }.length
+		if turn >= 35 && (routes.length - 1) + (route_to_goal.length - 1) > 51 - turn && (route_to_goal.length + num_of_water_in_route_to_goal) <= 51 - turn
 			p "I'll go to the goal."
 			traps.each do |trap|
 				except_without_goal.push(trap)
@@ -681,7 +739,7 @@ cat1.on(:start) do
 				available_points -= D_in_routes * 40
 				p :available_points, available_points
 
-				if available_points < 0
+				if available_points <= 0
 					p "Just move...(I'd want to go to the goal but available_points < 0)"
 					just_move()
 				end
