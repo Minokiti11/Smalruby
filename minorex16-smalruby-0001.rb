@@ -194,22 +194,25 @@ cat1.on(:start) do
 		p_west = [player_x - 1, player_y]
 		p_north = [player_x, player_y + 1]
 		p_south = [player_x, player_y - 1]
-		p_arround = [p_east, p_west, p_north, p_south]
+		p_around = [p_east, p_west, p_north, p_south]
 		traps = locate_objects(cent: ([8, 8]), sq_size: 15)
 		p_around.each do |a|
-			if traps.include?(a) || [enemy_x, enemy_y] == a || map(a) == 1 || map(a) == 2
+			if traps.include?(a) || [enemy_x, enemy_y] == a || map(a[0], a[1]) == 1 || map(a[0], a[1]) == 2 || map(a[0], a[1]) == 5
 				p_around.delete(a)
 			end
 		end
 		if p_around.empty?
+			end_time = Time.now - start_time
+			p :end_time, end_time
 			turn += 1
 			turn_over
 		else
-			routes = [[player_x, player_y], p_around[0]]
+			return [[player_x, player_y], p_around[0]]
 		end
 	end
 
 	loop do
+		start_time = Time.now
 		# 2点間の移動経路を[[x, y], ...]形式で返す
 		#
 		# src: [x, y] 始点(省略時はプレイヤーの現在座標)
@@ -326,6 +329,7 @@ cat1.on(:start) do
 
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
 		if turn >= 9 && !not_searching_flag && !after_bomb
+			time1 = Time.now
 			cluster_n = [5, all_treasures.size].min
 			if cluster_n > 0
 				result = k_means_clustering(cluster_n, all_treasures)
@@ -360,14 +364,13 @@ cat1.on(:start) do
 				end
 				mse = mse / clusters.length
 
-				time1 = Time.now
 				final_result = {}
 				# MSE（平均平方誤差）< 1.5になるまでクラスタ数を増やす
 				# 各クラスタ数ごとに10回試し、MSEが最小となるクラスタリングを採用
 				loop do
 					distances_array = []
 					clustering_results = {}
-					10.times do |i|
+					80.times do |i|
 						result = k_means_clustering(cluster_n, all_treasures)
 						clusters = result[:clusters]
 						centroids = result[:centroids]
@@ -403,17 +406,17 @@ cat1.on(:start) do
 							max_distance: distances_array.max
 						}
 
-						if distances_array.max <= 1.2 && mse < 1.2
+						if distances_array.max <= 1.2
 							break
 						end
 					end
 
 					final_result = {}
-					min_mse = 100
+					min_max_distance = 100
 					clustering_results.each do |key, value|
 						if value[:max_distance] <= 1.2
-							if value[:mse] < min_mse
-								min_mse = value[:mse]
+							if value[:max_distance] < min_max_distance
+								min_max_distance = value[:max_distance]
 								final_result = {
 									clusters: value[:clusters],
 									centroids: value[:centroids],
@@ -423,17 +426,16 @@ cat1.on(:start) do
 							end
 						end
 					end
-					p :final_result, final_result
 					if final_result.empty?
 						cluster_n += 1
 					else
-						if final_result[:max_distance] <= 1.2 && final_result[:mse] < 1.2
+						if final_result[:max_distance] <= 1.2
 							break
 						end
 					end
 				end
 				time2 = Time.now - time1
-				p "Took #{time2} seconds to find the clusters."
+				p "Took #{time2} seconds to define the clusters."
 			end
 
 			puts "Clusters(n=#{cluster_n}) = #{final_result[:clusters]}"
@@ -581,7 +583,6 @@ cat1.on(:start) do
         p :other_player_pos, [other_player_x, other_player_y]
         if !(other_player_x == nil)
 			other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C", "D"])))
-			other_player_routes_length = other_player_routes
 			if other_player_routes[1] == nil
 				other_player_routes_length = 100
 			else
@@ -596,8 +597,7 @@ cat1.on(:start) do
 						kowaseru.each do |k|
 							except.delete(k)
 						end
-						except.delete([goal_x, goal_y])
-						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
 						kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 	
 						#手持ちのダイナマイトで足りない場合
@@ -606,38 +606,44 @@ cat1.on(:start) do
 							kowaseru.each do |k|
 								except.push(k)
 							end
-							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
 						end
 	
 						if routes[1] == nil
 							traps_c.each do |c|
 								except.delete(c)
 							end
-							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
 	
 							if routes[1] == nil
 								traps_d.each do |d|
 									except.delete(d)
 								end
-								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
 	
 								if routes[1] == nil
 									#どこにも行けない場合は妨害キャラクタや減点アイテムがない隣のセルに移動
-									just_move()
-								else
-									except.push([goal_x, goal_y])
-									break
+									routes = just_move()
 								end
-							else
-								except.push([goal_x, goal_y])
-								break
 							end
-	
-						else
-							except.push([goal_x, goal_y])
-							break
 						end
-	
+						available_points = 60
+						trap_A_in_routes = routes.select{ |r| traps_a.include?(r) }.length
+						trap_B_in_routes = routes.select{ |r| traps_b.include?(r) }.length
+						trap_C_in_routes = routes.select{ |r| traps_c.include?(r) }.length
+						trap_D_in_routes = routes.select{ |r| traps_d.include?(r) }.length
+						available_points -= trap_A_in_routes * 10
+						available_points -= trap_B_in_routes * 20
+						available_points -= trap_C_in_routes * 30
+						available_points -= trap_D_in_routes * 40
+						p :available_points, available_points
+		
+						if available_points <= 0
+							p "Just move...(I'd want to go to the goal but available_points < 0)"
+							routes = just_move()
+						end
+
+						break
 					else
 						p :treasures_i, treasures[i]
 						routes = dijkstra_route([player_x, player_y], treasures[i], except)
@@ -649,7 +655,6 @@ cat1.on(:start) do
 				time2 = Time.now - time1
 				p :time2, time2
 			end
-
         else
             while routes[1] == nil
 				if treasures[i] == nil || i + 1 > treasures.length
@@ -726,22 +731,22 @@ cat1.on(:start) do
 
 			p :route_to_goal, routes
 			if routes[1] == nil
-				just_move()
+				routes = just_move()
 			else
 				available_points = 60
-				A_in_routes = routes.select{ |r| traps_a.include?(r) }.length
-				B_in_routes = routes.select{ |r| traps_b.include?(r) }.length
-				C_in_routes = routes.select{ |r| traps_c.include?(r) }.length
-				D_in_routes = routes.select{ |r| traps_d.include?(r) }.length
-				available_points -= A_in_routes * 10
-				available_points -= B_in_routes * 20
-				available_points -= C_in_routes * 30
-				available_points -= D_in_routes * 40
+				trap_A_in_routes = routes.select{ |r| traps_a.include?(r) }.length
+				trap_B_in_routes = routes.select{ |r| traps_b.include?(r) }.length
+				trap_C_in_routes = routes.select{ |r| traps_c.include?(r) }.length
+				trap_D_in_routes = routes.select{ |r| traps_d.include?(r) }.length
+				available_points -= trap_A_in_routes * 10
+				available_points -= trap_B_in_routes * 20
+				available_points -= trap_C_in_routes * 30
+				available_points -= trap_D_in_routes * 40
 				p :available_points, available_points
 
 				if available_points <= 0
 					p "Just move...(I'd want to go to the goal but available_points < 0)"
-					just_move()
+					routes = just_move()
 				end
 			end
 		end
@@ -775,6 +780,8 @@ cat1.on(:start) do
 
 		move_to(routes[1])
 
+		end_time = Time.now - start_time
+		p :end_time, end_time
 		turn += 1
 		turn_over
     end
