@@ -729,70 +729,61 @@ cat1.on(:start) do
         end
 
 		#35ターン以上でアイテムに行くとゴールできない場合
-		route_to_goal = dijkstra_route([routes[-1][0], routes[-1][1]], [goal_x, goal_y], traps_d)
+		route_to_goal = dijkstra_route([routes[-1][0], routes[-1][1]], [goal_x, goal_y], except_without_goal)
 		num_of_water_in_route_to_goal = route_to_goal.select{ |r| water_cell.include?(r) }.length
-		if turn >= 35 && (routes.length - 1) + (route_to_goal.length - 1) > 51 - turn && (route_to_goal.length + num_of_water_in_route_to_goal) <= 51 - turn
-			p "Go to the goal."
-			traps.each do |trap|
-				except_without_goal.push(trap)
-			end
-			routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
-			p :routes_to_goal_except_all_traps, routes
-			kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+		if turn >= 35 && (route_to_goal.length + num_of_water_in_route_to_goal) <= 51 - turn
+			route_to_goal = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal + traps)
+			p :routes_to_goal_except_all_traps, route_to_goal
+			kowaseru_in_routes = route_to_goal.select{ |r| kowaseru.include?(r) }.length
 			p :kowaseru_in_routes, kowaseru_in_routes
 			p :num_of_dynamite_you_have, num_of_dynamite_you_have
 			if kowaseru_in_routes > num_of_dynamite_you_have
 				p "lack of dynamites."
-				kowaseru.each do |k|
-					except_without_goal.push(k)
-				end
-				routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
-				kowaseru.each do |k|
-					except_without_goal.delete(k)
-				end
-				p :routes_to_goal_except_all_traps_and_breakable_walls, routes
-			end
-			traps.each do |trap|
-				except_without_goal.delete(trap)
+				route_to_goal = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal + kowaseru)
+				p :routes_to_goal_except_all_traps_and_breakable_walls, route_to_goal
 			end
 
-			if routes[1] == nil || routes.length > 51 - turn
+			if route_to_goal[1] == nil || route_to_goal.length > 51 - turn
 				p "looking for the routes except B, C, D..."
 				traps = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["B", "C", "D"]))
-				routes = calc_route(src: [player_x, player_y], dst: [goal_x, goal_y], except_cells: traps)
+				route_to_goal = calc_route(src: [player_x, player_y], dst: [goal_x, goal_y], except_cells: traps)
 			end
 
-			if routes[1] == nil || routes.length > 51 - turn
+			if route_to_goal[1] == nil || route_to_goal.length > 51 - turn
 				p "looking for the routes except C, D..."
 				traps = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C", "D"]))
-				routes = calc_route(src: [player_x, player_y], dst: [goal_x, goal_y], except_cells: traps)
+				route_to_goal = calc_route(src: [player_x, player_y], dst: [goal_x, goal_y], except_cells: traps)
 			end
 
-			if routes[1] == nil || routes.length > 51 - turn
+			if route_to_goal[1] == nil || route_to_goal.length > 51 - turn
 				p "looking for the routes except D..."
 				traps = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["D"]))
-				routes = calc_route(src: [player_x, player_y], dst: [goal_x, goal_y], except_cells: traps)
+				route_to_goal = calc_route(src: [player_x, player_y], dst: [goal_x, goal_y], except_cells: traps)
 			end
 
-			p :route_to_goal, routes
-			if routes[1] == nil
-				routes = just_move()
+			p :route_to_goal, route_to_goal
+			if route_to_goal[1] == nil
+				route_to_goal = just_move()
+				available_points = 0
 			else
 				available_points = 60
-				trap_A_in_routes = routes.select{ |r| traps_a.include?(r) }.length
-				trap_B_in_routes = routes.select{ |r| traps_b.include?(r) }.length
-				trap_C_in_routes = routes.select{ |r| traps_c.include?(r) }.length
-				trap_D_in_routes = routes.select{ |r| traps_d.include?(r) }.length
+				trap_A_in_routes = route_to_goal.select{ |r| traps_a.include?(r) }.length
+				trap_B_in_routes = route_to_goal.select{ |r| traps_b.include?(r) }.length
+				trap_C_in_routes = route_to_goal.select{ |r| traps_c.include?(r) }.length
+				trap_D_in_routes = route_to_goal.select{ |r| traps_d.include?(r) }.length
 				available_points -= trap_A_in_routes * 10
 				available_points -= trap_B_in_routes * 20
 				available_points -= trap_C_in_routes * 30
 				available_points -= trap_D_in_routes * 40
 				p :available_points, available_points
+			end
+		end
 
-				if available_points <= 0
-					p "Just move...(I'd want to go to the goal but available_points < 0)"
-					routes = just_move()
-				end
+		cluster_index = clusters.find_index { |cluster| cluster.include?(routes[-1]) }
+		if cluster_index
+			p "routes[-1] はクラスタ#{cluster_index}に属しています"
+			if clusters_value[cluster_index][:value] < available_points
+				route = route_to_goal
 			end
 		end
 
