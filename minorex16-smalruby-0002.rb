@@ -526,8 +526,11 @@ cat1.on(:start) do
 			treasures.delete([got_item_pos[0], got_item_pos[1]])
 		end
 
+		water_cell = locate_objects(cent:[8, 8], sq_size: 15, objects: ([4]))
+
 		# 近い順に並び替える
-		treasures.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size }
+		treasures.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size + dijkstra_route([player_x, player_y], treasure, EXCEPT).select{ |r| water_cell.include?(r) }.length }
+
 		p :treasures, treasures
 
 		treasures_a = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["a"]))
@@ -556,7 +559,6 @@ cat1.on(:start) do
 		except = [[goal_x, goal_y],[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[0,15],[0,16],[1,0],[2,0],[3,0],[4,0],[0,4],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[16,1],[16,2],[16,3],[16,4],[16,5],[16,6],[16,7],[16,8],[16,9],[16,10],[16,11],[16,12],[16,13],[16,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]
 		except_without_goal = [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[0,15],[0,16],[1,0],[2,0],[3,0],[4,0],[0,4],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[16,1],[16,2],[16,3],[16,4],[16,5],[16,6],[16,7],[16,8],[16,9],[16,10],[16,11],[16,12],[16,13],[16,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]
 		traps = locate_objects(cent:[8, 8], sq_size: 15)
-		water_cell = locate_objects(cent:[8, 8], sq_size: 15, objects: ([4]))
 
 		traps_a = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["A"]))
 		traps_b = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["B"]))
