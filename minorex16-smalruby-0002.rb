@@ -777,17 +777,16 @@ cat1.on(:start) do
 				available_points -= trap_D_in_routes * 40
 				p :available_points, available_points
 			end
-		end
-
-		cluster_index = nil
-		clusters.each_with_index do |cluster, index|
-			if cluster.include?(routes[-1])
-				cluster_index = index
+			cluster_index = nil
+			clusters.each_with_index do |cluster, index|
+				if cluster.include?(routes[-1])
+					cluster_index = index
+				end
 			end
-		end
-		if cluster_index
-			if clusters_value[cluster_index][:value] < available_points
-				route = route_to_goal
+			if cluster_index
+				if clusters_value[cluster_index][:value] < available_points
+					route = route_to_goal
+				end
 			end
 		end
 
