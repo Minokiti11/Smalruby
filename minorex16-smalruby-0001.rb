@@ -491,7 +491,7 @@ cat1.on(:start) do
 		end
 
 		# 近い順に並び替える
-		treasures.sort_by!{|treasure| calc_route(dst: treasure).size }
+		treasures.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size }
 		p :treasures, treasures
 
 		treasures_a = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["a"]))
@@ -687,7 +687,7 @@ cat1.on(:start) do
 		route_to_goal = dijkstra_route([routes[-1][0], routes[-1][1]], [goal_x, goal_y], traps_d)
 		num_of_water_in_route_to_goal = route_to_goal.select{ |r| water_cell.include?(r) }.length
 		if turn >= 35 && (routes.length - 1) + (route_to_goal.length - 1) > 51 - turn && (route_to_goal.length + num_of_water_in_route_to_goal) <= 51 - turn
-			p "I'll go to the goal."
+			p "Go to the goal."
 			traps.each do |trap|
 				except_without_goal.push(trap)
 			end
