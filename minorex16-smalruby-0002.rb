@@ -780,7 +780,7 @@ cat1.on(:start) do
 		end
 
 		cluster_index = nil
-		clusters.each_with_index |cluster, index| do
+		clusters.each_with_index do |cluster, index|
 			if cluster.include?(routes[-1])
 				cluster_index = index
 			end
