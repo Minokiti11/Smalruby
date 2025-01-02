@@ -781,7 +781,7 @@ cat1.on(:start) do
 		move_to(routes[1])
 
 		end_time = Time.now - start_time
-		p :end_time, end_time
+		p "Took a " + end_time + "seconds."
 		turn += 1
 		turn_over
     end
