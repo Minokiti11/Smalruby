@@ -779,9 +779,13 @@ cat1.on(:start) do
 			end
 		end
 
-		cluster_index = clusters.index { |cluster| cluster.include?(routes[-1]) }
+		cluster_index = nil
+		clusters.each_with_index |cluster, index| do
+			if cluster.include?(routes[-1])
+				cluster_index = index
+			end
+		end
 		if cluster_index
-			p "routes[-1] はクラスタ#{cluster_index}に属しています"
 			if clusters_value[cluster_index][:value] < available_points
 				route = route_to_goal
 			end
