@@ -687,6 +687,12 @@ cat1.on(:start) do
 						p :treasures_i, treasures[i]
 						routes = dijkstra_route([player_x, player_y], treasures[i], except)
 						p :routes, routes
+						other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: except)
+						if other_player_routes[1] == nil
+							other_player_routes_length = 100
+						else
+							other_player_routes_length = other_player_routes.length
+						end
 						i += 1
 					end
 					p :i, i
