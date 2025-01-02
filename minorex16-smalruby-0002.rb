@@ -321,11 +321,12 @@ cat1.on(:start) do
 
 		all_treasures = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["a", "b", "c", "d", "e"]))
 
-		if all_treasures.include?([player_x, player_y])
+		if all_treasures.include?([player_x, player_y]) && !got_items_pos.include?([player_x, player_y])
 			got_items_pos.push([player_x, player_y])
-			got_items_pos.each do |got_item_pos|
-				all_treasures.delete([got_item_pos[0], got_item_pos[1]])
-			end
+		end
+
+		got_items_pos.each do |got_item_pos|
+			all_treasures.delete([got_item_pos[0], got_item_pos[1]])
 		end
 
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
