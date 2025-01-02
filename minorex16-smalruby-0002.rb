@@ -608,7 +608,7 @@ cat1.on(:start) do
 			p :kowaseru_in_routes, kowaseru_in_routes
 
 			#手持ちのダイナマイトで足りない場合
-			if kowaseru_in_routes > num_of_dynamite_you_have
+			if kowaseru_in_routes > num_of_dynamite_you_have || (routes[1] != nil && (calc_route(dst: treasures[0], except_cells: except + traps_b + traps_a).length - routes.length) <= 1)
 				#ダイナマイトを通らない経路を調べる
 				kowaseru.each do |k|
 					except.push(k)
