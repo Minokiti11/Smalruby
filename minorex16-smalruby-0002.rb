@@ -779,7 +779,7 @@ cat1.on(:start) do
 			end
 		end
 
-		cluster_index = clusters.find_index { |cluster| cluster.include?(routes[-1]) }
+		cluster_index = clusters.index { |cluster| cluster.include?(routes[-1]) }
 		if cluster_index
 			p "routes[-1] はクラスタ#{cluster_index}に属しています"
 			if clusters_value[cluster_index][:value] < available_points
