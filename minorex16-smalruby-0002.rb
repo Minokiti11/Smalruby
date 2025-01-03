@@ -446,29 +446,34 @@ cat1.on(:start) do
 
 			if !not_searching_flag && !after_bomb
 				if other_x == (nil) || other_y == (nil)
-					rand_x = rand(1..3)
-					rand_y = rand(1..3)
-					if rand_x == 1
-						rand_x = 3
-					elsif rand_x == 2
-						rand_x = 8
+					if turn <= 15 && other_footprint.length != 0
+						
 					else
-						rand_x = 13
+						rand_x = rand(1..3)
+						rand_y = rand(1..3)
+						if rand_x == 1
+							rand_x = 3
+						elsif rand_x == 2
+							rand_x = 8
+						else
+							rand_x = 13
+						end
+						if rand_y == 1
+							rand_y = 3
+						elsif rand_y == 2
+							rand_y = 8
+						else
+							rand_y = 13
+						end
+						get_map_area(rand_x, rand_y)
+	
+						if !(other_player_x == nil)
+							other_x = other_player_x
+							other_y = other_player_y
+							other_footprint.push([other_x, other_y])
+						end
 					end
-					if rand_y == 1
-						rand_y = 3
-					elsif rand_y == 2
-						rand_y = 8
-					else
-						rand_y = 13
-					end
-					get_map_area(rand_x, rand_y)
 
-					if !(other_player_x == nil)
-						other_x = other_player_x
-						other_y = other_player_y
-						other_footprint.push([other_x, other_y])
-					end
 				else
 					p "Searching for other player..."
 					get_map_area(other_x,other_y)
