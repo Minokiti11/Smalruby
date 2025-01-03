@@ -374,7 +374,7 @@ cat1.on(:start) do
 					p :new_route, new_route
 
 					# 経路がなくなるか、経路の長さが10以上増える場合
-					if new_route[1].nil? || (new_route.length + new_route.select{ |r| water_cell.include?(r) }.length - (original_route.length + original_route.select{ |r| water_cell.include?(r) }.length) >= 5)
+					if new_route[1].nil? || (new_route.length + new_route.select{ |r| water_cell.include?(r) }.length - (original_route.length + original_route.select{ |r| water_cell.include?(r) }.length) >= 3)
 						blocked_cells << cell
 					end
 				end
