@@ -360,6 +360,7 @@ cat1.on(:start) do
 			traps_d = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["D"]))
 
 			original_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d)
+			p :original_route, original_route
 			if original_route[1] != nil
 				blocked_cells = []
 				original_route.each do |cell|
@@ -377,6 +378,7 @@ cat1.on(:start) do
 						blocked_cells << cell
 					end
 				end
+				p :blocked_cells, blocked_cells
 				blocked_cells.each do |cell|
 					if all_treasures.include?(cell) || traps.include?(cell)
 						blocked_cells.delete(cell)
@@ -697,7 +699,7 @@ cat1.on(:start) do
 			if routes[1] == nil || other_player_routes_length < routes.length
 				time1 = Time.now
 				while routes[1] == nil || other_player_routes_length < routes.length
-					if i >= 15 && i + 1 > treasures.length && i != 0
+					if i >= 15 || (i + 1 > treasures.length && i != 0)
 						p "Go to the goal."
 						kowaseru.each do |k|
 							except.delete(k)
