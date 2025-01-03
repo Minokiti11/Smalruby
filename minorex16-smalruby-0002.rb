@@ -197,7 +197,7 @@ cat1.on(:start) do
 		p_around = [p_east, p_west, p_north, p_south]
 		traps = locate_objects(cent: ([8, 8]), sq_size: 15)
 		p_around.each do |a|
-			if traps.include?(a) || [enemy_x, enemy_y] == a || map(a[0], a[1]) == 1 || map(a[0], a[1]) == 2 || map(a[0], a[1]) == 5
+			if EXCEPT.include?(a) || traps.include?(a) || [enemy_x, enemy_y] == a || map(a[0], a[1]) == 1 || map(a[0], a[1]) == 2 || map(a[0], a[1]) == 5
 				p_around.delete(a)
 			end
 		end
@@ -275,6 +275,27 @@ cat1.on(:start) do
 			end
 			return data
 		end
+
+		# 相手が向かうアイテムを決定する関数
+		def decide_item_based_on_recent_path(other_footprint, items)
+			return nil if other_footprint.empty? || items.empty?
+
+			# 直近5ターンの位置を取得
+			other_player_pos = other_footprint[-1]
+			closest_item = nil
+			closest_distance = 10000
+
+			# 各アイテムに対して、直近の位置からの距離を計算
+			items.each do |item|
+				distance = Math.sqrt((other_player_pos[0] - item[0])**2 + (other_player_pos[1] - item[1])**2)
+				if distance < closest_distance
+					closest_distance = distance
+					closest_item = item
+				end
+			end
+			closest_item
+		end
+
 		p :not_searching_flag, not_searching_flag
 		p :after_bomb, after_bomb
 		p :got_items_pos, got_items_pos
@@ -320,6 +341,8 @@ cat1.on(:start) do
 		p :other_footprint, other_footprint
 
 		all_treasures = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["a", "b", "c", "d", "e"]))
+		traps = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["A", "B", "C", "D"]))
+		water_cell = locate_objects(cent:[8, 8], sq_size: 15, objects: ([4]))
 
 		if all_treasures.include?([player_x, player_y]) && !got_items_pos.include?([player_x, player_y])
 			got_items_pos.push([player_x, player_y])
@@ -327,6 +350,40 @@ cat1.on(:start) do
 
 		got_items_pos.each do |got_item_pos|
 			all_treasures.delete([got_item_pos[0], got_item_pos[1]])
+		end
+
+		if other_footprint.length > 0 && !not_searching_flag
+			decided_item = decide_item_based_on_recent_path(other_footprint, all_treasures)
+			p :decided_item, decided_item
+
+			traps_c = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C"]))
+			traps_d = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["D"]))
+
+			original_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d)
+			if original_route[1] != nil
+				blocked_cells = []
+				original_route.each do |cell|
+					if cell == original_route[-1]
+						break
+					end
+					# 塞がれるマスを一時的に通れないようにする
+					new_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d + [cell])
+					p :cell, cell
+
+					p :new_route, new_route
+
+					# 経路がなくなるか、経路の長さが10以上増える場合
+					if new_route[1].nil? || (new_route.length + new_route.select{ |r| water_cell.include?(r) }.length - (original_route.length + original_route.select{ |r| water_cell.include?(r) }.length) >= 5)
+						blocked_cells << cell
+					end
+				end
+				blocked_cells.each do |cell|
+					if all_treasures.include?(cell) || traps.include?(cell)
+						blocked_cells.delete(cell)
+					end
+				end
+				p :blocked_cells, blocked_cells
+			end
 		end
 
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
@@ -538,8 +595,6 @@ cat1.on(:start) do
 			treasures.delete([got_item_pos[0], got_item_pos[1]])
 		end
 
-		water_cell = locate_objects(cent:[8, 8], sq_size: 15, objects: ([4]))
-
 		# 近い順に並び替える
 		treasures.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size + dijkstra_route([player_x, player_y], treasure, EXCEPT).select{ |r| water_cell.include?(r) }.length }
 
@@ -642,7 +697,7 @@ cat1.on(:start) do
 			if routes[1] == nil || other_player_routes_length < routes.length
 				time1 = Time.now
 				while routes[1] == nil || other_player_routes_length < routes.length
-					if i + 1 > treasures.length && i != 0
+					if i >= 15 && i + 1 > treasures.length && i != 0
 						p "Go to the goal."
 						kowaseru.each do |k|
 							except.delete(k)
@@ -692,18 +747,19 @@ cat1.on(:start) do
 							p "Just move...(I'd want to go to the goal but available_points < 0)"
 							routes = just_move()
 						end
-
 						break
 					else
 						p :treasures_i, treasures[i]
 						routes = dijkstra_route([player_x, player_y], treasures[i], except)
 						p :routes, routes
-						other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: except)
+						p :routes_length, routes.length
+						other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i])
 						if other_player_routes[1] == nil
 							other_player_routes_length = 100
 						else
 							other_player_routes_length = other_player_routes.length
 						end
+						p :other_player_routes_length, other_player_routes_length
 						i += 1
 					end
 					p :i, i
@@ -814,6 +870,19 @@ cat1.on(:start) do
 
 		prev_routes = routes
 		not_searching_flag = kowaseru.include?(routes[3])
+
+		if blocked_cells
+			if blocked_cells.length > 0 && (blocked_cells.include?(routes[1]))
+				not_searching_flag = true
+			end
+		end
+
+		if blocked_cells
+			if blocked_cells.length > 0 && blocked_cells.include?([player_x, player_y])
+				set_bomb(blocked_cells[blocked_cells.index([player_x, player_y])])
+			end
+		end
+
 		if kowaseru.include?(routes[2])
 			set_dynamite(routes[1])
 			num_of_dynamite_you_have -= 1
