@@ -448,7 +448,7 @@ cat1.on(:start) do
 				if other_x == (nil) || other_y == (nil)
 					if turn <= 15 && other_footprint.length != 0
 						grid_centers = [[3,3], [3,8], [3,13], [8,3], [8,8], [8,13], [13,3], [13,8], [13,13]]
-						other_player_initial_grid = grid_centers.min_by { |center| (center[0]-other_player_x)**2 + (center[1]-other_player_y)**2 }
+						other_player_initial_grid = grid_centers.min_by { |center| (center[0]-other_footprint[-1][0])**2 + (center[1]-other_footprint[-1][1])**2 }
 						grid_centers.sort_by! { |center| (center[0]-other_player_initial_grid[0])**2 + (center[1]-other_player_initial_grid[1])**2 }
 
 						rand_i = rand(0..2)
