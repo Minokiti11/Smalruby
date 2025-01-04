@@ -45,7 +45,7 @@ cat1.on(:start) do
     opp_clean = opp.select { |element| element != [nil, nil] }
      
     # ゴールを目指すターンを設定
-    if turn >= 35
+    if turn >= 42
       gogoal = 1
     end
     
