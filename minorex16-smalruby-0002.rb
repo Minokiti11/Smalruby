@@ -867,15 +867,24 @@ cat1.on(:start) do
 					p "Set Max_Value_per_Distance_Cluster as Aim_Cluster."
 				end
 				p :aim_cluster, aim_cluster
-				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
+				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d + kowaseru)
 				p :routes, routes
+
+				permit_kowaseru_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
 				
 				kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
-		
-				#手持ちのダイナマイトで足りない場合
-				if kowaseru_in_routes > num_of_dynamite_you_have
-					#壊せる壁を通らない経路を調べる
-					routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
+				p :kowaseru_in_routes, kowaseru_in_routes
+				p :num_of_dynamite_you_have, num_of_dynamite_you_have
+
+				if permit_kowaseru_routes[1] != nil
+					if routes[1] == nil
+						routes = permit_kowaseru_routes
+					end
+					if routes.length - permit_kowaseru_routes.length >= 5
+						if kowaseru_in_routes > num_of_dynamite_you_have
+							routes = permit_kowaseru_routes
+						end
+					end
 				end
 
 				if routes[1] == nil
@@ -966,9 +975,9 @@ cat1.on(:start) do
 					end
 					i += 1
 				end
+			else
+				go_to_goal_flag = true
 			end
-
-			go_to_goal_flag = true
 
 			p :routes, routes
 		end
