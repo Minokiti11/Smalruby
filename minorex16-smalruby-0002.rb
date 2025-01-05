@@ -919,7 +919,7 @@ cat1.on(:start) do
 
 				i = 1
 				other_player_routes = dijkstra_route([other_x, other_y], clusters[value_per_distance.index(value_per_distance.max)].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
-				while i <= clusters.length && other_x != nil && other_player_routes.length < routes.length && routes[1] == nil
+				while i <= clusters.length && other_x != nil && other_player_routes.length < routes.length || routes[1] == nil
 					p :i, i
 					other_player_routes = dijkstra_route([other_x, other_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
 					routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
