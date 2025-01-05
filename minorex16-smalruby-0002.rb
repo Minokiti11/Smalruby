@@ -861,22 +861,22 @@ cat1.on(:start) do
 				aim_cluster = clusters[value_per_distance.index(value_per_distance.max)]
 				p "Set Max_Value_per_Distance_Cluster as Aim_Cluster."
 			end
-			routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
+			routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
 			
 			kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 	
 			#手持ちのダイナマイトで足りない場合
 			if kowaseru_in_routes > num_of_dynamite_you_have
 				#壊せる壁を通らない経路を調べる
-				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
+				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
 			end
 
 			if routes[1] == nil
-				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_b + traps_c + traps_d)
+				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_b + traps_c + traps_d)
 				#手持ちのダイナマイトで足りない場合
 				if kowaseru_in_routes > num_of_dynamite_you_have
 					#壊せる壁を通らない経路を調べる
-					routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
+					routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
 				end
 			end
 
