@@ -517,7 +517,7 @@ cat1.on(:start) do
 
 			if !not_searching_flag && !after_bomb && !set_bomb_flag
 				if other_x == (nil) || other_y == (nil)
-					if turn <= 15 && other_footprint.length != 0
+					if turn <= 15 && other_footprint.length != 0 && other_footprint[-1] != [nil, nil]
 						grid_centers = [[3,3], [3,8], [3,13], [8,3], [8,8], [8,13], [13,3], [13,8], [13,13]]
 						other_player_initial_grid = grid_centers.min_by { |center| (center[0]-other_footprint[-1][0])**2 + (center[1]-other_footprint[-1][1])**2 }
 						grid_centers.sort_by! { |center| (center[0]-other_player_initial_grid[0])**2 + (center[1]-other_player_initial_grid[1])**2 }
@@ -880,7 +880,7 @@ cat1.on(:start) do
 
 			i = 1
 			other_player_routes = dijkstra_route([other_x, other_y], clusters[value_per_distance.index(value_per_distance.max)].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
-			while i <= clusters.length && other_x != nil && other_player_routes.length < routes.length
+			while i <= clusters.length && other_x != nil && other_player_routes.length < routes.length && routes[1] == nil
 				p :i, i
 				other_player_routes = dijkstra_route([other_x, other_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
 				routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
