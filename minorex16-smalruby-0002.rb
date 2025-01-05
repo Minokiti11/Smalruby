@@ -836,21 +836,30 @@ cat1.on(:start) do
 			value_per_distance = []
 			clusters_value.each_with_index do |cluster, index|
 				p :cluster, cluster
-				value_per_distance.push(cluster[1][:value] / cluster[1][:distance])
-				if cluster[1][:cluster].include?([player_x, player_y])
-					if cluster[1][:cluster].length == 1
-						current_cluster = nil
-					else
-						current_cluster = cluster[1][:cluster]
+				if cluster[1][:distance] > 51 - turn
+					clusters.delete(cluster[1][:cluster])
+					clusters_value.delete_at(index)
+					next
+				else
+					value_per_distance.push(cluster[1][:value] / cluster[1][:distance])
+					if cluster[1][:cluster].include?([player_x, player_y])
+						if cluster[1][:cluster].length == 1
+							current_cluster = nil
+						else
+							current_cluster = cluster[1][:cluster]
+						end
 					end
 				end
+
 			end
 			p :value_per_distance, value_per_distance
 			aim_cluster = nil
 			if current_cluster
 				aim_cluster = current_cluster
+				p "Set Current Cluster as Aim_Cluster"
 			else
 				aim_cluster = clusters[value_per_distance.index(value_per_distance.max)]
+				p "Set Max_Value_per_Distance_Cluster as Aim_Cluster."
 			end
 			routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
 			
