@@ -418,6 +418,26 @@ cat1.on(:start) do
 					centroids = result[:centroids]
 					i += 1
 				end
+
+				mse = 0
+				clusters.each do |cluster|
+					index_of_cluster = clusters.index(cluster)
+					centroid = centroids[index_of_cluster]
+					sum_distance = 0
+					cluster.each do |data|
+						distance = Math.sqrt((centroid[0] - data[0]).abs**2 + (centroid[1] - data[1]).abs**2)
+						sum_distance += distance
+					end
+					average_distance = sum_distance / cluster.length
+					
+					mse += average_distance
+				end
+				mse = mse / clusters.length
+				final_result = {
+					clusters: result[:clusters],
+					centroids: result[:centroids],
+					mse: mse,
+				}
 			end
 
 
@@ -509,11 +529,12 @@ cat1.on(:start) do
 				end
 				time2 = Time.now - time1
 				p "Took #{time2} seconds to define the clusters."
+				puts "Clusters(n=#{cluster_n}) = #{final_result[:clusters]}"
+				puts "Centroids: #{final_result[:centroids]}"
+				puts "MSE = #{final_result[:mse]}"
 			end
 
-			puts "Clusters(n=#{cluster_n}) = #{final_result[:clusters]}"
-			puts "Centroids: #{final_result[:centroids]}"
-			puts "MSE = #{final_result[:mse]}"
+
 
 			if !not_searching_flag && !after_bomb && !set_bomb_flag
 				if other_x == (nil) || other_y == (nil)
@@ -851,19 +872,19 @@ cat1.on(:start) do
 			end
 
 			if routes[1] == nil
-				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
+				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_c + traps_d)
 				#手持ちのダイナマイトで足りない場合
 				if kowaseru_in_routes > num_of_dynamite_you_have
 					#壊せる壁を通らない経路を調べる
-					routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
+					routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
 				end
 			end
 			if routes[1] == nil
 				available_points = clusters_value[value_per_distance.index(value_per_distance.max)][:value]
 
-				trap_A_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_a.include?(r) }.length
-				trap_B_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_b.include?(r) }.length
-				trap_C_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_c.include?(r) }.length
+				trap_A_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_d).select{ |r| traps_a.include?(r) }.length
+				trap_B_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_d).select{ |r| traps_b.include?(r) }.length
+				trap_C_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_d).select{ |r| traps_c.include?(r) }.length
 				available_points -= trap_A_in_routes * 10
 				available_points -= trap_B_in_routes * 20
 				available_points -= trap_C_in_routes * 30
