@@ -1043,7 +1043,7 @@ cat1.on(:start) do
 		
 					if routes[1] == nil || other_player_routes_length < routes.length || routes.length > 51 - turn
 						time1 = Time.now
-						while routes[1] == nil || other_player_routes_length < routes.length
+						while routes[1] == nil || other_player_routes_length < routes.length || routes.length > 51 - turn
 							if i >= 15 || (i + 1 > treasures.length && i != 0)
 								p "Go to the goal."
 								kowaseru.each do |k|
