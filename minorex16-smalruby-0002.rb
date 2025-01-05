@@ -1036,6 +1036,8 @@ cat1.on(:start) do
 				else
 					route = route_to_goal
 				end
+			else
+				route = route_to_goal
 			end
 		end
 
