@@ -19,6 +19,7 @@ cat1.on(:start) do
 	num_of_dynamite_you_have = 2
 	not_searching_flag = false
 	after_bomb = false
+	set_bomb_flag = false
 	grid_centers_in_initial_pos = []
 	got_items_pos = [] #取得した後に探索を行っていないアイテムの座標
 	routes = nil
@@ -352,41 +353,51 @@ cat1.on(:start) do
 			all_treasures.delete([got_item_pos[0], got_item_pos[1]])
 		end
 
-		if other_footprint.length > 0 && !not_searching_flag
-			decided_item = decide_item_based_on_recent_path(other_footprint, all_treasures)
-			p :decided_item, decided_item
+		# if set_bomb_flag
+		# 	set_bomb_flag = false
+		# end
 
-			traps_c = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C"]))
-			traps_d = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["D"]))
+		# if other_footprint.length > 0 && !not_searching_flag
+		# 	decided_item = decide_item_based_on_recent_path(other_footprint, all_treasures)
+		# 	p :decided_item, decided_item
 
-			original_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d)
-			p :original_route, original_route
-			if original_route[1] != nil
-				blocked_cells = []
-				original_route.each do |cell|
-					if cell == original_route[-1]
-						break
-					end
-					# 塞がれるマスを一時的に通れないようにする
-					new_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d + [cell])
-					p :cell, cell
+		# 	traps_c = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C"]))
+		# 	traps_d = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["D"]))
 
-					p :new_route, new_route
+		# 	original_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d)
+		# 	p :original_route, original_route
+		# 	if original_route[1] != nil
+		# 		blocked_cells = []
+		# 		original_route.each do |cell|
+		# 			if cell == original_route[-1]
+		# 				break
+		# 			end
+		# 			# 塞がれるマスを一時的に通れないようにする
+		# 			new_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d + [cell])
+		# 			p :cell, cell
 
-					# 経路がなくなるか、経路の長さが10以上増える場合
-					if new_route[1].nil? || (new_route.length + new_route.select{ |r| water_cell.include?(r) }.length - (original_route.length + original_route.select{ |r| water_cell.include?(r) }.length) >= 3)
-						blocked_cells << cell
-					end
-				end
-				p :blocked_cells, blocked_cells
-				blocked_cells.each do |cell|
-					if all_treasures.include?(cell) || traps.include?(cell)
-						blocked_cells.delete(cell)
-					end
-				end
-				p :blocked_cells, blocked_cells
-			end
-		end
+		# 			p :new_route, new_route
+
+		# 			# 経路がなくなるか、経路の長さが10以上増える場合
+		# 			if new_route[1].nil? || (new_route.length + new_route.select{ |r| water_cell.include?(r) }.length - (original_route.length + original_route.select{ |r| water_cell.include?(r) }.length) >= 3)
+		# 				blocked_cells << cell
+		# 			end
+		# 		end
+		# 		p :blocked_cells, blocked_cells
+		# 		blocked_cells.each do |cell|
+		# 			if all_treasures.include?(cell) || traps.include?(cell)
+		# 				blocked_cells.delete(cell)
+		# 			end
+		# 		end
+		# 		p :blocked_cells, blocked_cells
+		# 	end
+		# 	if blocked_cells
+		# 		if blocked_cells.length > 0 && blocked_cells.include?([player_x, player_y])
+		# 			set_bomb(blocked_cells[blocked_cells.index([player_x, player_y])])
+		# 			set_bomb_flag = true
+		# 		end
+		# 	end
+		# end
 
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
 		if turn >= 9
@@ -503,7 +514,7 @@ cat1.on(:start) do
 			puts "Centroids: #{final_result[:centroids]}"
 			puts "MSE = #{final_result[:mse]}"
 
-			if !not_searching_flag && !after_bomb
+			if !not_searching_flag && !after_bomb && !set_bomb_flag
 				if other_x == (nil) || other_y == (nil)
 					if turn <= 15 && other_footprint.length != 0
 						grid_centers = [[3,3], [3,8], [3,13], [8,3], [8,8], [8,13], [13,3], [13,8], [13,13]]
@@ -640,71 +651,143 @@ cat1.on(:start) do
 			except.push(d)
 		end
 
-		p :treasures_first, treasures[0]
-
-		if treasures[0] != nil
-			routes = dijkstra_route([player_x, player_y], treasures[0], except + traps_b + traps_a)
-			other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[0], except + traps_b + traps_a)
-			p :routes, routes
-			p :other_player_routes, other_player_routes
-
-			if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
-				p "Changing the route..."
-				routes = dijkstra_route([player_x, player_y], treasures[0], except + traps_b)
-				p :routes, routes
-				if other_x
-					other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[0], except + traps_b)
-					p :other_player_routes , other_player_routes
-				else
-					p "other_player is missing.."
-				end
-			end
-
-			if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
-				p "Changing the route..."
-				routes = dijkstra_route([player_x, player_y], treasures[0], except)
-				p :routes, routes
-				if other_x
-					other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[0], except)
-					p :other_player_routes, dijkstra_route([other_player_x, other_player_y], treasures[0], except)
-				else
-					p "other_player is missing.."
-				end
-			end
-
-			kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
-			p :kowaseru_in_routes, kowaseru_in_routes
-
-			#手持ちのダイナマイトで足りない場合
-			if kowaseru_in_routes > num_of_dynamite_you_have || (calc_route(dst: treasures[0], except_cells: except + traps_b + traps_a)[1] != nil && routes[1] != nil && (calc_route(dst: treasures[0], except_cells: except + traps_b + traps_a).length - routes.length) <= 1)
-				#壊せる壁を通らない経路を調べる
-				kowaseru.each do |k|
-					except.push(k)
-				end
+		if turn < 9
+			p :treasures_first, treasures[0]
+			if treasures[0] != nil
 				routes = dijkstra_route([player_x, player_y], treasures[0], except + traps_b + traps_a)
-				p :except_kowaseru_routes, routes
+				other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[0], except + traps_b + traps_a)
+				p :routes, routes
+				p :other_player_routes, other_player_routes
+	
+				if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
+					p "Changing the route..."
+					routes = dijkstra_route([player_x, player_y], treasures[0], except + traps_b)
+					p :routes, routes
+					if other_x
+						other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[0], except + traps_b)
+						p :other_player_routes , other_player_routes
+					else
+						p "other_player is missing.."
+					end
+				end
+	
+				if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
+					p "Changing the route..."
+					routes = dijkstra_route([player_x, player_y], treasures[0], except)
+					p :routes, routes
+					if other_x
+						other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[0], except)
+						p :other_player_routes, dijkstra_route([other_player_x, other_player_y], treasures[0], except)
+					else
+						p "other_player is missing.."
+					end
+				end
+	
+				kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+				p :kowaseru_in_routes, kowaseru_in_routes
+	
+				#手持ちのダイナマイトで足りない場合
+				if kowaseru_in_routes > num_of_dynamite_you_have || (calc_route(dst: treasures[0], except_cells: except + traps_b + traps_a)[1] != nil && routes[1] != nil && (calc_route(dst: treasures[0], except_cells: except + traps_b + traps_a).length - routes.length) <= 1)
+					#壊せる壁を通らない経路を調べる
+					kowaseru.each do |k|
+						except.push(k)
+					end
+					routes = dijkstra_route([player_x, player_y], treasures[0], except + traps_b + traps_a)
+					p :except_kowaseru_routes, routes
+				end
 			end
-		end
-
-		i = 0
-        p :other_player_pos, [other_player_x, other_player_y]
-        if !(other_player_x == nil)
-			other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C", "D"])))
-			if other_player_routes[1] == nil
-				other_player_routes_length = 100
+	
+			i = 0
+			p :other_player_pos, [other_player_x, other_player_y]
+			if !(other_player_x == nil)
+				other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C", "D"])))
+				if other_player_routes[1] == nil
+					other_player_routes_length = 100
+				else
+					other_player_routes_length = other_player_routes.length
+				end
+	
+				if routes[1] == nil || other_player_routes_length < routes.length
+					time1 = Time.now
+					while routes[1] == nil || other_player_routes_length < routes.length
+						if i >= 15 || (i + 1 > treasures.length && i != 0)
+							p "Go to the goal."
+							kowaseru.each do |k|
+								except.delete(k)
+							end
+							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
+							kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+		
+							#手持ちのダイナマイトで足りない場合
+							if kowaseru_in_routes > num_of_dynamite_you_have
+								#ダイナマイトを通らない経路を調べる
+								kowaseru.each do |k|
+									except.push(k)
+								end
+								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
+							end
+		
+							if routes[1] == nil
+								traps_c.each do |c|
+									except.delete(c)
+								end
+								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
+		
+								if routes[1] == nil
+									traps_d.each do |d|
+										except.delete(d)
+									end
+									routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
+		
+									if routes[1] == nil
+										#どこにも行けない場合は妨害キャラクタや減点アイテムがない隣のセルに移動
+										routes = just_move()
+									end
+								end
+							end
+							available_points = 60
+							trap_A_in_routes = routes.select{ |r| traps_a.include?(r) }.length
+							trap_B_in_routes = routes.select{ |r| traps_b.include?(r) }.length
+							trap_C_in_routes = routes.select{ |r| traps_c.include?(r) }.length
+							trap_D_in_routes = routes.select{ |r| traps_d.include?(r) }.length
+							available_points -= trap_A_in_routes * 10
+							available_points -= trap_B_in_routes * 20
+							available_points -= trap_C_in_routes * 30
+							available_points -= trap_D_in_routes * 40
+							p :available_points, available_points
+			
+							if available_points <= 0
+								p "Just move...(I'd want to go to the goal but available_points < 0)"
+								routes = just_move()
+							end
+							break
+						else
+							p :treasures_i, treasures[i]
+							routes = dijkstra_route([player_x, player_y], treasures[i], except)
+							p :routes, routes
+							p :routes_length, routes.length
+							other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i])
+							if other_player_routes[1] == nil
+								other_player_routes_length = 100
+							else
+								other_player_routes_length = other_player_routes.length
+							end
+							p :other_player_routes_length, other_player_routes_length
+							i += 1
+						end
+						p :i, i
+					end
+					time2 = Time.now - time1
+					p :time2, time2
+				end
 			else
-				other_player_routes_length = other_player_routes.length
-			end
-
-			if routes[1] == nil || other_player_routes_length < routes.length
-				time1 = Time.now
-				while routes[1] == nil || other_player_routes_length < routes.length
-					if i >= 15 || (i + 1 > treasures.length && i != 0)
-						p "Go to the goal."
+				while routes[1] == nil
+					if treasures[i] == nil || i + 1 > treasures.length
 						kowaseru.each do |k|
 							except.delete(k)
 						end
-						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
+						except.delete([goal_x, goal_y])
+						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
 						kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 	
 						#手持ちのダイナマイトで足りない場合
@@ -713,89 +796,87 @@ cat1.on(:start) do
 							kowaseru.each do |k|
 								except.push(k)
 							end
-							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
+							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
 						end
-	
-						if routes[1] == nil
-							traps_c.each do |c|
-								except.delete(c)
-							end
-							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
-	
-							if routes[1] == nil
-								traps_d.each do |d|
-									except.delete(d)
-								end
-								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
-	
-								if routes[1] == nil
-									#どこにも行けない場合は妨害キャラクタや減点アイテムがない隣のセルに移動
-									routes = just_move()
-								end
-							end
-						end
-						available_points = 60
-						trap_A_in_routes = routes.select{ |r| traps_a.include?(r) }.length
-						trap_B_in_routes = routes.select{ |r| traps_b.include?(r) }.length
-						trap_C_in_routes = routes.select{ |r| traps_c.include?(r) }.length
-						trap_D_in_routes = routes.select{ |r| traps_d.include?(r) }.length
-						available_points -= trap_A_in_routes * 10
-						available_points -= trap_B_in_routes * 20
-						available_points -= trap_C_in_routes * 30
-						available_points -= trap_D_in_routes * 40
-						p :available_points, available_points
-		
-						if available_points <= 0
-							p "Just move...(I'd want to go to the goal but available_points < 0)"
-							routes = just_move()
-						end
+						except.push([goal_x, goal_y])
 						break
 					else
 						p :treasures_i, treasures[i]
 						routes = dijkstra_route([player_x, player_y], treasures[i], except)
-						p :routes, routes
-						p :routes_length, routes.length
-						other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i])
-						if other_player_routes[1] == nil
-							other_player_routes_length = 100
-						else
-							other_player_routes_length = other_player_routes.length
-						end
-						p :other_player_routes_length, other_player_routes_length
 						i += 1
 					end
-					p :i, i
 				end
-				time2 = Time.now - time1
-				p :time2, time2
 			end
-        else
-            while routes[1] == nil
-				if treasures[i] == nil || i + 1 > treasures.length
-					kowaseru.each do |k|
-						except.delete(k)
-					end
-					except.delete([goal_x, goal_y])
-					routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
-					kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+		else
+			value_per_distance = []
+			clusters_value.each_with_index do |cluster, index|
+				p :cluster, cluster
+				value_per_distance.push(cluster[1][:value] / cluster[1][:distance])
+			end
+			p :value_per_distance, value_per_distance
+			routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.max)].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
+			kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+	
+			#手持ちのダイナマイトで足りない場合
+			if kowaseru_in_routes > num_of_dynamite_you_have
+				#壊せる壁を通らない経路を調べる
+				routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.max)].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
+			end
 
-					#手持ちのダイナマイトで足りない場合
-					if kowaseru_in_routes > num_of_dynamite_you_have
-						#ダイナマイトを通らない経路を調べる
-						kowaseru.each do |k|
-							except.push(k)
-						end
-						routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
-					end
-					except.push([goal_x, goal_y])
-					break
-				else
-					p :treasures_i, treasures[i]
-					routes = dijkstra_route([player_x, player_y], treasures[i], except)
-					i += 1
+			if routes[1] == nil
+				routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_b + traps_c + traps_d)
+			end
+			if routes[1] == nil
+				routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
+			end
+			if routes[1] == nil
+				available_points = clusters_value[value_per_distance.index(value_per_distance.sort.reverse[i])][:value]
+
+				trap_A_in_routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_a.include?(r) }.length
+				trap_B_in_routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_b.include?(r) }.length
+				trap_C_in_routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_c.include?(r) }.length
+				available_points -= trap_A_in_routes * 10
+				available_points -= trap_B_in_routes * 20
+				available_points -= trap_C_in_routes * 30
+				p :available_points, available_points
+				if available_points > 0
+					routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_d).size }[0], EXCEPT + traps_d)
 				end
-            end
-        end
+			end
+
+			i = 1
+			while i <= clusters.length && dijkstra_route([other_x, other_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d).length < routes.length
+				routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
+				if routes[1] == nil
+					routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_b + traps_c + traps_d)
+				end
+				if routes[1] == nil
+					routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
+				end
+				if routes[1] == nil
+					available_points = clusters_value[value_per_distance.index(value_per_distance.sort.reverse[i])][:value]
+	
+					trap_A_in_routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_a.include?(r) }.length
+					trap_B_in_routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_b.include?(r) }.length
+					trap_C_in_routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_c.include?(r) }.length
+					available_points -= trap_A_in_routes * 10
+					available_points -= trap_B_in_routes * 20
+					available_points -= trap_C_in_routes * 30
+					p :available_points, available_points
+					if available_points > 0
+						routes = dijkstra_route([player_x, player_y], clusters[value_per_distance.index(value_per_distance.sort.reverse[i])].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_d).size }[0], EXCEPT + traps_d)
+					else
+						i += 1
+						next
+					end
+				end
+				i += 1
+			end
+
+			p :routes, routes
+		end
+
+
 
 		#35ターン以上でアイテムに行くとゴールできない場合
 		route_to_goal = dijkstra_route([routes[-1][0], routes[-1][1]], [goal_x, goal_y], except_without_goal)
@@ -872,18 +953,6 @@ cat1.on(:start) do
 
 		prev_routes = routes
 		not_searching_flag = kowaseru.include?(routes[3])
-
-		if blocked_cells
-			if blocked_cells.length > 0 && (blocked_cells.include?(routes[1]))
-				not_searching_flag = true
-			end
-		end
-
-		if blocked_cells
-			if blocked_cells.length > 0 && blocked_cells.include?([player_x, player_y])
-				set_bomb(blocked_cells[blocked_cells.index([player_x, player_y])])
-			end
-		end
 
 		if kowaseru.include?(routes[2])
 			set_dynamite(routes[1])
