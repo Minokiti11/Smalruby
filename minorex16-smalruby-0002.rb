@@ -866,7 +866,9 @@ cat1.on(:start) do
 					aim_cluster = clusters[value_per_distance.index(value_per_distance.max)]
 					p "Set Max_Value_per_Distance_Cluster as Aim_Cluster."
 				end
+				p :aim_cluster
 				routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_a + traps_b + traps_c + traps_d)
+				p :routes, routes
 				
 				kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 		
