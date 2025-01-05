@@ -871,7 +871,9 @@ cat1.on(:start) do
 				p :routes, routes
 				
 				kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
-		
+				p :kowaseru_in_routes, kowaseru_in_routes
+				p :num_of_dynamite_you_have, num_of_dynamite_you_have
+
 				#手持ちのダイナマイトで足りない場合
 				if kowaseru_in_routes > num_of_dynamite_you_have
 					#壊せる壁を通らない経路を調べる
