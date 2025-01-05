@@ -838,7 +838,7 @@ cat1.on(:start) do
 				p :cluster, cluster
 				if cluster[1][:distance] > 51 - turn
 					clusters.delete(cluster[1][:cluster])
-					clusters_value.delete_at(index)
+					clusters_value.delete(index)
 					next
 				else
 					value_per_distance.push(cluster[1][:value] / cluster[1][:distance])
