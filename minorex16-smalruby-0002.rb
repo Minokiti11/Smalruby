@@ -27,6 +27,7 @@ cat1.on(:start) do
 	prev_routes = nil
 	current_cluster = nil
 	go_to_goal_flag = false
+	prev_treasures = nil
 	EXCEPT = [[goal_x, goal_y],[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[0,15],[0,16],[1,0],[2,0],[3,0],[4,0],[0,4],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[16,1],[16,2],[16,3],[16,4],[16,5],[16,6],[16,7],[16,8],[16,9],[16,10],[16,11],[16,12],[16,13],[16,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]
 
 	# ダイクストラ法により最短経路を求める
@@ -301,7 +302,7 @@ cat1.on(:start) do
 
 		p :not_searching_flag, not_searching_flag
 		p :after_bomb, after_bomb
-		p :got_items_pos, got_items_pos
+		
 		grid_centers = [[3,3], [3,8], [3,13], [8,3], [8,8], [8,13], [13,3], [13,8], [13,13]]
 		player_initial_grid = grid_centers.min_by { |center| (center[0]-player_x)**2 + (center[1]-player_y)**2 }
 		grid_centers.sort_by! { |center| (center[0]-player_initial_grid[0])**2 + (center[1]-player_initial_grid[1])**2 }
@@ -350,6 +351,8 @@ cat1.on(:start) do
 		if all_treasures.include?([player_x, player_y]) && !got_items_pos.include?([player_x, player_y])
 			got_items_pos.push([player_x, player_y])
 		end
+
+		p :got_items_pos, got_items_pos
 
 		got_items_pos.each do |got_item_pos|
 			all_treasures.delete([got_item_pos[0], got_item_pos[1]])
@@ -402,7 +405,38 @@ cat1.on(:start) do
 		# end
 
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
-		if turn >= 9
+		if prev_treasures
+			if all_treasures.sort != prev_treasures.sort
+				got_item = prev_treasures - all_treasures
+				p :got_item, got_item
+				clusters_value.each do |cluster, index|
+					if cluster[1][:cluster].include?(got_item)
+						clusters[index].delete(got_item)
+						clusters_value[index][:cluster] = clusters[index]
+						cluster_value = 0
+						clusters[index].each do |cell|
+							item = map(cell[0], cell[1])
+							case item
+							when "a"
+								cluster_value += 10
+							when "b"
+								cluster_value += 20
+							when "c"
+								cluster_value += 30
+							when "d"
+								cluster_value += 40
+							when "e"
+								cluster_value += 60
+							end
+						end
+						clusters_value[index][:value] = cluster_value
+					end
+				end
+				changed_map_flag = true
+			end
+		end
+		prev_treasures = all_treasures
+		if turn == 9
 			time1 = Time.now
 			cluster_n = [5, all_treasures.size].min
 			if cluster_n > 0
@@ -534,7 +568,6 @@ cat1.on(:start) do
 				puts "Centroids: #{final_result[:centroids]}"
 				puts "MSE = #{final_result[:mse]}"
 			end
-
 
 
 			if !not_searching_flag && !after_bomb && !set_bomb_flag
@@ -839,29 +872,23 @@ cat1.on(:start) do
 			end
 		else
 			if all_treasures.length - clusters.length > 7
-				p :clusters_value_length, clusters_value.length
-				
 				clusters_value.each_with_index do |cluster, index|
 					if cluster[1][:distance] > 51 - turn
 						clusters.delete(cluster[1][:cluster])
 						clusters_value.delete(index)
 						next
-					else
-						if cluster[1][:cluster].include?([player_x, player_y])
-							if cluster[1][:cluster].length == 1
-								current_cluster = nil
-							else
-								current_cluster = cluster[1][:cluster]
-							end
-						end
 					end
-
 				end
 				if clusters_value.length != 0
 					aim_cluster = nil
 					if current_cluster
 						aim_cluster = current_cluster
-						p "Set Current Cluster as Aim_Cluster"
+						aim_cluster.each do |cell|
+							if got_items_pos.include?(cell)
+								aim_cluster.delete(cell)
+							end
+						end
+						p "Set Current Cluster as Aim_Cluster."
 					else
 						aim_cluster = clusters_value.sort_by{ |_, v| -v[:value_per_distance] }[0][1][:cluster]
 						p "Set Max_Value_per_Distance_Cluster as Aim_Cluster."
@@ -921,7 +948,7 @@ cat1.on(:start) do
 					end
 
 					i = 1
-					other_player_routes = dijkstra_route([other_x, other_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[0][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
+					other_player_routes = dijkstra_route([other_x, other_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_c + traps_d)
 
 					p :other_player_routes, other_player_routes
 					while !(other_x == nil) && !(other_player_routes[1] == nil) && other_player_routes.length < routes.length || routes[1] == nil
@@ -1244,6 +1271,28 @@ cat1.on(:start) do
 			set_dynamite()
 			num_of_dynamite_you_have -= 1
 			after_bomb = true
+		end
+
+		if turn >= 9 && clusters_value && clusters
+			clusters_value.each_with_index do |cluster, index|
+				if cluster[1][:distance] > 51 - turn
+					clusters.delete(cluster[1][:cluster])
+					clusters_value.delete(index)
+					next
+				else
+					if cluster[1][:cluster].include?(routes[1])
+						current_cluster = cluster[1][:cluster]
+					end
+					if current_cluster
+						if cluster[1][:cluster].length == 1 && routes[1] == cluster[1][:cluster][0]
+							current_cluster = nil
+						end
+						p :current_cluster, current_cluster
+						p cluster[1][:cluster]
+					end
+
+				end
+			end
 		end
 
 		move_to(routes[1])
