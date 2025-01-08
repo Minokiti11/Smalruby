@@ -28,6 +28,7 @@ cat1.on(:start) do
 	current_cluster = nil
 	go_to_goal_flag = false
 	prev_treasures = nil
+	clusters = []
 	EXCEPT = [[goal_x, goal_y],[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[0,15],[0,16],[1,0],[2,0],[3,0],[4,0],[0,4],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[16,1],[16,2],[16,3],[16,4],[16,5],[16,6],[16,7],[16,8],[16,9],[16,10],[16,11],[16,12],[16,13],[16,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]
 
 	# ダイクストラ法により最短経路を求める
@@ -438,6 +439,7 @@ cat1.on(:start) do
 				changed_map_flag = true
 			end
 		end
+		puts "Clusters(n=#{clusters.length}) = #{clusters}"
 		prev_treasures = all_treasures
 		if turn == 9
 			time1 = Time.now
@@ -634,7 +636,7 @@ cat1.on(:start) do
 		end
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
 
-		if turn >= 9
+		if turn == 9
 			clusters = final_result[:clusters]
 			centroids = final_result[:centroids]
 			clusters_value = {}
@@ -1290,8 +1292,6 @@ cat1.on(:start) do
 						if cluster[1][:cluster].length == 1 && routes[1] == cluster[1][:cluster][0]
 							current_cluster = nil
 						end
-						p :current_cluster, current_cluster
-						p cluster[1][:cluster]
 					end
 
 				end
