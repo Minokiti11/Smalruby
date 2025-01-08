@@ -405,7 +405,7 @@ cat1.on(:start) do
 		# end
 
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
-		if prev_treasures
+		if turn >= 10 && prev_treasures
 			if all_treasures.sort != prev_treasures.sort
 				got_item = prev_treasures - all_treasures
 				p :got_item, got_item
