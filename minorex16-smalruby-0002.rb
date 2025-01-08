@@ -734,6 +734,8 @@ cat1.on(:start) do
 			except.push(d)
 		end
 
+		make_decision_time_start = Time.now
+
 		if turn < 9
 			p :treasures_first, treasures[0]
 			if treasures[0] != nil
@@ -1189,6 +1191,9 @@ cat1.on(:start) do
 			end
 			p :routes, routes
 		end
+		make_decision_time = Time.now - make_decision_time_start
+
+		puts "Make Decision Time: #{make_decision_time}s"
 
 
 
