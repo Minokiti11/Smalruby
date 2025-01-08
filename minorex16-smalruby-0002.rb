@@ -29,6 +29,7 @@ cat1.on(:start) do
 	go_to_goal_flag = false
 	prev_treasures = nil
 	clusters = []
+	clusters_value = {}
 	EXCEPT = [[goal_x, goal_y],[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[0,15],[0,16],[1,0],[2,0],[3,0],[4,0],[0,4],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[14,0],[15,0],[16,0],[16,1],[16,2],[16,3],[16,4],[16,5],[16,6],[16,7],[16,8],[16,9],[16,10],[16,11],[16,12],[16,13],[16,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]
 
 	# ダイクストラ法により最短経路を求める
@@ -408,38 +409,52 @@ cat1.on(:start) do
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
 		if turn >= 10 && prev_treasures
 			if all_treasures.sort != prev_treasures.sort
-				got_item = prev_treasures - all_treasures
-				p :got_item, got_item
-				clusters_value.each do |cluster, index|
-					if cluster[1][:cluster].include?(got_item)
-						clusters[index].delete(got_item)
-						clusters_value[index][:cluster] = clusters[index]
-						cluster_value = 0
-						clusters[index].each do |cell|
-							item = map(cell[0], cell[1])
-							case item
-							when "a"
-								cluster_value += 10
-							when "b"
-								cluster_value += 20
-							when "c"
-								cluster_value += 30
-							when "d"
-								cluster_value += 40
-							when "e"
-								cluster_value += 60
+				got_items = prev_treasures - all_treasures
+				p :got_items, got_items
+				clusters_value.each_with_index do |cluster, index|
+					p :index, index
+					if cluster[1][:cluster].include?(got_items[0])
+						if cluster[1][:cluster].length == 1
+							puts "#{got_items[0]}のアイテムが取得されました．クラスタを削除します．．"
+							clusters.delete(clusters[index])
+							clusters_value.delete(index)
+						elsif cluster[1][:distance] > 51 - turn
+							puts "残りのターン数で到達できない距離にあるクラスタを削除します．．"
+							clusters.delete(clusters[index])
+							clusters_value.delete(index)
+						else
+							puts "#{got_items[0]}のアイテムが取得されました．クラスタを更新します．．"
+							clusters[index].delete(got_items[0])
+							p :clusters_value, clusters_value
+							clusters_value[index][:cluster] = clusters[index]
+							cluster_value = 0
+							clusters[index].each do |cell|
+								item = map(cell[0], cell[1])
+								case item
+								when "a"
+									cluster_value += 10
+								when "b"
+									cluster_value += 20
+								when "c"
+									cluster_value += 30
+								when "d"
+									cluster_value += 40
+								when "e"
+									cluster_value += 60
+								end
 							end
+							clusters_value[index][:value] = cluster_value
+							clusters[index].sort_by! { |cell| dijkstra_route([player_x, player_y], cell, EXCEPT).size }
+							clusters_value[index][:distance] = dijkstra_route([player_x, player_y], clusters[index][-1], EXCEPT).size
+							clusters_value[index][:value_per_distance] = cluster_value / clusters_value[index][:distance]
 						end
-						clusters_value[index][:value] = cluster_value
-						clusters[index].sort_by! { |cell| dijkstra_route([player_x, player_y], cell, EXCEPT).size }
-						clusters_value[index][:distance] = dijkstra_route([player_x, player_y], clusters[index][0], EXCEPT).size,
-						clusters_value[index][:value_per_distance] = cluster_value / clusters_value[index][:distance]
 					end
 				end
-				changed_map_flag = true
 			end
 		end
-		puts "Clusters(n=#{clusters.length}) = #{clusters}"
+		if turn >= 9
+			puts "Clusters(n=#{clusters.length}) = #{clusters}"
+		end
 		prev_treasures = all_treasures
 		if turn == 9
 			time1 = Time.now
@@ -573,8 +588,9 @@ cat1.on(:start) do
 				puts "Centroids: #{final_result[:centroids]}"
 				puts "MSE = #{final_result[:mse]}"
 			end
+		end
 
-
+		if turn >= 9
 			if !not_searching_flag && !after_bomb && !set_bomb_flag
 				if other_x == (nil) || other_y == (nil)
 					if turn <= 15 && other_footprint.length != 0 && other_footprint[-1] != [nil, nil]
@@ -639,7 +655,6 @@ cat1.on(:start) do
 		if turn == 9
 			clusters = final_result[:clusters]
 			centroids = final_result[:centroids]
-			clusters_value = {}
 			distance_to_each_cluster = []
 			clusters.each_with_index do |cluster, index|
 				cluster_value = 0
@@ -663,8 +678,8 @@ cat1.on(:start) do
 					cluster: cluster,
 					centroid: centroids[index],
 					value: cluster_value,
-					distance: dijkstra_route([player_x, player_y], cluster[0], EXCEPT).size,
-					value_per_distance: cluster_value / dijkstra_route([player_x, player_y], cluster[0], EXCEPT).size
+					distance: dijkstra_route([player_x, player_y], cluster[-1], EXCEPT).size,
+					value_per_distance: cluster_value / dijkstra_route([player_x, player_y], cluster[-1], EXCEPT).size
 				}
 			end
 
@@ -877,13 +892,6 @@ cat1.on(:start) do
 			end
 		else
 			if all_treasures.length - clusters.length > 7
-				clusters_value.each_with_index do |cluster, index|
-					if cluster[1][:distance] > 51 - turn
-						clusters.delete(cluster[1][:cluster])
-						clusters_value.delete(index)
-						next
-					end
-				end
 				if clusters_value.length != 0
 					aim_cluster = nil
 					if current_cluster
@@ -1280,20 +1288,13 @@ cat1.on(:start) do
 
 		if turn >= 9 && clusters_value && clusters
 			clusters_value.each_with_index do |cluster, index|
-				if cluster[1][:distance] > 51 - turn
-					clusters.delete(cluster[1][:cluster])
-					clusters_value.delete(index)
-					next
-				else
-					if cluster[1][:cluster].include?(routes[1])
-						current_cluster = cluster[1][:cluster]
+				if cluster[1][:cluster].include?(routes[1])
+					current_cluster = cluster[1][:cluster]
+				end
+				if current_cluster
+					if cluster[1][:cluster].length == 1 && routes[1] == cluster[1][:cluster][0]
+						current_cluster = nil
 					end
-					if current_cluster
-						if cluster[1][:cluster].length == 1 && routes[1] == cluster[1][:cluster][0]
-							current_cluster = nil
-						end
-					end
-
 				end
 			end
 		end
