@@ -430,6 +430,9 @@ cat1.on(:start) do
 							end
 						end
 						clusters_value[index][:value] = cluster_value
+						clusters[index].sort_by! { |cell| dijkstra_route([player_x, player_y], cell, EXCEPT).size }
+						clusters_value[index][:distance] = dijkstra_route([player_x, player_y], clusters[index][0], EXCEPT).size,
+						clusters_value[index][:value_per_distance] = cluster_value / clusters_value[index][:distance]
 					end
 				end
 				changed_map_flag = true
