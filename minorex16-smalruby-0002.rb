@@ -408,27 +408,36 @@ cat1.on(:start) do
 
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
 		if turn >= 10 && prev_treasures
+			clusters_value.each_with_index do |cluster, index|
+				clusters_value[clusters_value.key(cluster[1])][:distance] = dijkstra_route([player_x, player_y], cluster[1][:cluster][-1], EXCEPT).size
+				clusters_value[clusters_value.key(cluster[1])][:value_per_distance] = clusters_value[clusters_value.key(cluster[1])][:value] / clusters_value[clusters_value.key(cluster[1])][:distance]
+			end
 			if all_treasures.sort != prev_treasures.sort
 				got_items = prev_treasures - all_treasures
 				p :got_items, got_items
 				clusters_value.each_with_index do |cluster, index|
-					p :index, index
+					p "index: ", index
 					if cluster[1][:cluster].include?(got_items[0])
 						if cluster[1][:cluster].length == 1
 							puts "#{got_items[0]}のアイテムが取得されました．クラスタを削除します．．"
-							clusters.delete(clusters[index])
-							clusters_value.delete(index)
-						elsif cluster[1][:distance] > 51 - turn
-							puts "残りのターン数で到達できない距離にあるクラスタを削除します．．"
-							clusters.delete(clusters[index])
-							clusters_value.delete(index)
+							p "clusters_value: ", clusters_value
+							clusters.delete(cluster[1][:cluster])
+							clusters_value.delete(clusters_value.key(cluster[1]))
+							p "clusters_value: ", clusters_value
 						else
 							puts "#{got_items[0]}のアイテムが取得されました．クラスタを更新します．．"
-							clusters[index].delete(got_items[0])
-							p :clusters_value, clusters_value
-							clusters_value[index][:cluster] = clusters[index]
+							p "clusters_value: ", clusters_value
+							clusters.each_with_index do |cluster_cell, i|
+								if cluster_cell.include?(got_items[0])
+									clusters[i].delete(got_items[0])
+									clusters_value[clusters_value.key(cluster[1])][:cluster] = clusters[i]
+								end
+							end
+							
+							
+							p "clusters_value: ", clusters_value
 							cluster_value = 0
-							clusters[index].each do |cell|
+							cluster[1][:cluster].each do |cell|
 								item = map(cell[0], cell[1])
 								case item
 								when "a"
@@ -443,18 +452,23 @@ cat1.on(:start) do
 									cluster_value += 60
 								end
 							end
-							clusters_value[index][:value] = cluster_value
-							clusters[index].sort_by! { |cell| dijkstra_route([player_x, player_y], cell, EXCEPT).size }
-							clusters_value[index][:distance] = dijkstra_route([player_x, player_y], clusters[index][-1], EXCEPT).size
-							clusters_value[index][:value_per_distance] = cluster_value / clusters_value[index][:distance]
+							clusters_value[clusters_value.key(cluster[1])][:value] = cluster_value
+							cluster[1][:cluster].sort_by! { |cell| dijkstra_route([player_x, player_y], cell, EXCEPT).size }
+							clusters_value[clusters_value.key(cluster[1])][:distance] = dijkstra_route([player_x, player_y], cluster[1][:cluster][-1], EXCEPT).size
+							clusters_value[clusters_value.key(cluster[1])][:value_per_distance] = cluster_value / clusters_value[clusters_value.key(cluster[1])][:distance]
 						end
+					end
+				end
+				clusters_value.each_with_index do |cluster, index|
+					if dijkstra_route([player_x, player_y], cluster[1][:cluster][0], EXCEPT).size > 51 - turn
+						puts "残りのターン数で到達できない距離にあるクラスタを削除します．．"
+						clusters.delete(cluster[1][:cluster])
+						clusters_value.delete(clusters_value.key(cluster[1]))
 					end
 				end
 			end
 		end
-		if turn >= 9
-			puts "Clusters(n=#{clusters.length}) = #{clusters}"
-		end
+
 		prev_treasures = all_treasures
 		if turn == 9
 			time1 = Time.now
@@ -682,7 +696,10 @@ cat1.on(:start) do
 					value_per_distance: cluster_value / dijkstra_route([player_x, player_y], cluster[-1], EXCEPT).size
 				}
 			end
+		end
 
+		if turn >= 9
+			puts "Clusters(n=#{clusters.length}) = #{clusters}"
 			p :clusters_value, clusters_value
 		end
 
@@ -1196,7 +1213,7 @@ cat1.on(:start) do
 		puts "Make Decision Time: #{make_decision_time}s"
 
 
-
+		puts "go_to_goal_flag: ", go_to_goal_flag
 		#35ターン以上でアイテムに行くとゴールできない場合
 		route_to_goal = dijkstra_route([routes[-1][0], routes[-1][1]], [goal_x, goal_y], except_without_goal) 
 		num_of_water_in_route_to_goal = route_to_goal.select{ |r| water_cell.include?(r) }.length
@@ -1231,7 +1248,7 @@ cat1.on(:start) do
 			end
 
 			p :route_to_goal, route_to_goal
-			if route_to_goal[1] == nil
+			if route_to_goal[1] == nil || route_to_goal.length > 51 - turn
 				route_to_goal = just_move()
 				available_points = 0
 			else
@@ -1252,15 +1269,7 @@ cat1.on(:start) do
 					cluster_index = index
 				end
 			end
-			if cluster_index
-				if clusters_value[cluster_index] != nil
-					if clusters_value[cluster_index][:value] < available_points
-						route = route_to_goal
-					end
-				else
-					route = route_to_goal
-				end
-			else
+			if go_to_goal_flag || cluster_index == nil || clusters_value[cluster_index] == nil || clusters_value[cluster_index][:value] < available_points
 				route = route_to_goal
 			end
 		end
