@@ -1270,7 +1270,7 @@ cat1.on(:start) do
 				end
 			end
 			if go_to_goal_flag || cluster_index == nil || clusters_value[cluster_index] == nil || clusters_value[cluster_index][:value] < available_points
-				route = route_to_goal
+				routes = route_to_goal
 			end
 		end
 
