@@ -1085,7 +1085,7 @@ cat1.on(:start) do
 						kowaseru.each do |k|
 							except.push(k)
 						end
-						routes = dijkstra_route([player_x, player_y], treasures[0], traps_d + traps_c + traps_b + traps_a)
+						routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b + traps_a)
 						p :except_kowaseru_routes, routes
 					end
 				end
@@ -1161,7 +1161,7 @@ cat1.on(:start) do
 								break
 							else
 								p :treasures_i, treasures[i]
-								routes = dijkstra_route([player_x, player_y], treasures[i], except)
+								routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT)
 								p :routes, routes
 								p :routes_length, routes.length
 								other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i])
@@ -1184,8 +1184,7 @@ cat1.on(:start) do
 							kowaseru.each do |k|
 								except.delete(k)
 							end
-							except.delete([goal_x, goal_y])
-							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+							routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
 							kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 		
 							#手持ちのダイナマイトで足りない場合
@@ -1194,13 +1193,12 @@ cat1.on(:start) do
 								kowaseru.each do |k|
 									except.push(k)
 								end
-								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except)
+								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal)
 							end
-							except.push([goal_x, goal_y])
 							break
 						else
 							p :treasures_i, treasures[i]
-							routes = dijkstra_route([player_x, player_y], treasures[i], except)
+							routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT)
 							i += 1
 						end
 					end
