@@ -1087,7 +1087,7 @@ cat1.on(:start) do
 				i = 0
 				p :other_player_pos, [other_player_x, other_player_y]
 				if !(other_player_x == nil)
-					other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: locate_objects(cent: [8, 8], sq_size: 15, objects: ["C", "D"]))
+					other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[i], EXCEPT + traps_d +  traps_c)
 					num_of_water_in_route = other_player_routes.select { |r| water_cell.include?(r) }.length
 					if other_player_routes[1].nil?
 						other_player_routes_length = 100
@@ -1197,7 +1197,7 @@ cat1.on(:start) do
 									end
 								end
 
-								other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i])
+								other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[i], EXCEPT + traps_d + traps_c)
 								num_of_water_in_route = other_player_routes.count { |r| water_cell.include?(r) }
 								if other_player_routes[1] == nil
 									other_player_routes_length = 100
