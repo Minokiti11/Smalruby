@@ -759,7 +759,7 @@ cat1.on(:start) do
 	
 				if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
 					p "Changing the route..."
-					routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b)
+					routes = dijkstra_route(         [player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b)
 					p :routes, routes
 					if other_x != nil
 						other_player_routes = dijkstra_route([other_x, other_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b)
@@ -878,8 +878,45 @@ cat1.on(:start) do
 						break
 					else
 						p :treasures_i, treasures[i]
-
-						routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT)
+						routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + traps_d + traps_c + traps_b + traps_a)
+						other_player_routes = dijkstra_route([other_x, other_y], treasures[i], EXCEPT + traps_d + traps_c + traps_b + traps_a)
+						p :routes, routes
+						p :other_player_routes, other_player_routes
+			
+						if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
+							p "Changing the route..."
+							routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + traps_d + traps_c + traps_b)
+							p :routes, routes
+							if other_x != nil
+								other_player_routes = dijkstra_route([other_x, other_y], treasures[i], EXCEPT + traps_d + traps_c + traps_b)
+								p :other_player_routes , other_player_routes
+							else
+								p "other_player is missing.."
+							end
+						end
+			
+						if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
+							p "Changing the route..."
+							routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + traps_d + traps_c)
+							p :routes, routes
+							if other_x != nil
+								other_player_routes = dijkstra_route([other_x, other_y], treasures[i], EXCEPT + traps_d + traps_c)
+								p :other_player_routes, other_player_routes
+							else
+								p "other_player is missing.."
+							end
+						end
+			
+						kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+						p :kowaseru_in_routes, kowaseru_in_routes
+						p :num_of_dynamite_you_have, num_of_dynamite_you_have
+			
+						#手持ちのダイナマイトで足りない場合
+						if kowaseru_in_routes > num_of_dynamite_you_have
+							#壊せる壁を通らない経路を調べる
+							routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a)
+							p :except_kowaseru_routes, routes
+						end
 						i += 1
 					end
 				end
