@@ -885,7 +885,7 @@ cat1.on(:start) do
 				end
 			end
 		else
-			if all_treasures.length - clusters.length > 7
+			if all_treasures.length - clusters.length > 5
 				aim_cluster = nil
 				if clusters_value.length != 0
 					if current_cluster
