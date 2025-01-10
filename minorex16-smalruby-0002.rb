@@ -1087,16 +1087,17 @@ cat1.on(:start) do
 				i = 0
 				p :other_player_pos, [other_player_x, other_player_y]
 				if !(other_player_x == nil)
-					other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C", "D"])))
-					if other_player_routes[1] == nil
+					other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i], except_cells: locate_objects(cent: [8, 8], sq_size: 15, objects: ["C", "D"]))
+					num_of_water_in_route = other_player_routes.select { |r| water_cell.include?(r) }.length
+					if other_player_routes[1].nil?
 						other_player_routes_length = 100
 					else
-						other_player_routes_length = other_player_routes.length
+						other_player_routes_length = other_player_routes.length + num_of_water_in_route
 					end
 		
-					if routes[1] == nil || other_player_routes_length < routes.length || routes.length > 51 - turn
+					if routes[1] == nil || other_player_routes_length < (routes.length + routes.select { |r| water_cell.include?(r) }.length) || routes.length + routes.select { |r| water_cell.include?(r) }.length > 51 - turn
 						time1 = Time.now
-						while routes[1] == nil || other_player_routes_length < routes.length || routes.length > 51 - turn
+						while routes[1] == nil || other_player_routes_length < (routes.length + routes.select { |r| water_cell.include?(r) }.length) || routes.length + routes.select { |r| water_cell.include?(r) }.length > 51 - turn
 							if i >= 15 || (i + 1 > treasures.length && i != 0)
 								p "Go to the goal."
 								routes = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal + traps_d + traps_c)
@@ -1152,16 +1153,57 @@ cat1.on(:start) do
 								break
 							else
 								p :treasures_i, treasures[i]
-								routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT)
-								p :routes, routes
-								p :routes_length, routes.length
+								routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + traps_d + traps_c + traps_b + traps_a)
+								kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+								p :kowaseru_in_routes, kowaseru_in_routes
+			
+								#手持ちのダイナマイトで足りない場合
+								if kowaseru_in_routes > num_of_dynamite_you_have
+									#壊せる壁を通らない経路を調べる
+									routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a)
+									p :except_kowaseru_routes, routes
+								end
+					
+								if routes[1] == nil
+									p "Changing the route..."
+									routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b)
+									p :routes, routes
+			
+									kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+									p :kowaseru_in_routes, kowaseru_in_routes
+				
+									#手持ちのダイナマイトで足りない場合
+									if kowaseru_in_routes > num_of_dynamite_you_have
+										#壊せる壁を通らない経路を調べる
+										routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b)
+										p :except_kowaseru_routes, routes
+									end
+								end
+					
+								if routes[1] == nil
+									p "Changing the route..."
+									routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c)
+									p :routes, routes
+			
+			
+									kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
+									p :kowaseru_in_routes, kowaseru_in_routes
+				
+									#手持ちのダイナマイトで足りない場合
+									if kowaseru_in_routes > num_of_dynamite_you_have
+										#壊せる壁を通らない経路を調べる
+										routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c)
+										p :except_kowaseru_routes, routes
+									end
+								end
+
 								other_player_routes = calc_route(src: [other_player_x, other_player_y], dst: treasures[i])
+								num_of_water_in_route = other_player_routes.count { |r| water_cell.include?(r) }
 								if other_player_routes[1] == nil
 									other_player_routes_length = 100
 								else
-									other_player_routes_length = other_player_routes.length
+									other_player_routes_length = other_player_routes.length + num_of_water_in_route
 								end
-								p :other_player_routes_length, other_player_routes_length
 								i += 1
 							end
 							p :i, i
