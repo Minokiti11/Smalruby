@@ -1195,40 +1195,40 @@ cat1.on(:start) do
 								p :kowaseru_in_routes, kowaseru_in_routes
 			
 								#手持ちのダイナマイトで足りない、またはダイナマイトを使わなくてもさほど距離が変わらない場合
-								if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a).length < 2
+								if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a).length < 2
 									#壊せる壁を通らない経路を調べる
-									routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a)
+									routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a)
 									p :except_kowaseru_routes, routes
 								end
 					
 								if routes[1] == nil
 									p "Changing the route..."
-									routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b)
+									routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + traps_d + traps_c + traps_b)
 									p :routes, routes
 			
 									kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 									p :kowaseru_in_routes, kowaseru_in_routes
 				
 									#手持ちのダイナマイトで足りない、またはダイナマイトを使わなくてもさほど距離が変わらない場合
-									if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b).length < 2
+									if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b).length < 2
 										#壊せる壁を通らない経路を調べる
-										routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b)
+										routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b)
 										p :except_kowaseru_routes, routes
 									end
 								end
 					
 								if routes[1] == nil
 									p "Changing the route..."
-									routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c)
+									routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + traps_d + traps_c)
 									p :routes, routes
 
 									kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 									p :kowaseru_in_routes, kowaseru_in_routes
 				
 									#手持ちのダイナマイトで足りない、またはダイナマイトを使わなくてもさほど距離が変わらない場合
-									if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c).length < 2
+									if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c).length < 2
 										#壊せる壁を通らない経路を調べる
-										routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c)
+										routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c)
 										p :except_kowaseru_routes, routes
 									end
 								end
@@ -1266,40 +1266,40 @@ cat1.on(:start) do
 							p :kowaseru_in_routes, kowaseru_in_routes
 		
 							#手持ちのダイナマイトで足りない、またはダイナマイトを使わなくてもさほど距離が変わらない場合
-							if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a).length < 2
+							if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a).length < 2
 								#壊せる壁を通らない経路を調べる
-								routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a)
+								routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a)
 								p :except_kowaseru_routes, routes
 							end
 				
 							if routes[1] == nil
 								p "Changing the route..."
-								routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b)
+								routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + traps_d + traps_c + traps_b)
 								p :routes, routes
 		
 								kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 								p :kowaseru_in_routes, kowaseru_in_routes
 			
 								#手持ちのダイナマイトで足りない、またはダイナマイトを使わなくてもさほど距離が変わらない場合
-								if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b).length < 2
+								if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b).length < 2
 									#壊せる壁を通らない経路を調べる
-									routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b)
+									routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c + traps_b)
 									p :except_kowaseru_routes, routes
 								end
 							end
 				
 							if routes[1] == nil
 								p "Changing the route..."
-								routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c)
+								routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + traps_d + traps_c)
 								p :routes, routes
 		
 								kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 								p :kowaseru_in_routes, kowaseru_in_routes
 			
 								#手持ちのダイナマイトで足りない、またはダイナマイトを使わなくてもさほど距離が変わらない場合
-								if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c).length < 2
+								if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c).length < 2
 									#壊せる壁を通らない経路を調べる
-									routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c)
+									routes = dijkstra_route([player_x, player_y], treasures[i], EXCEPT + kowaseru + traps_d + traps_c)
 									p :except_kowaseru_routes, routes
 								end
 							end
