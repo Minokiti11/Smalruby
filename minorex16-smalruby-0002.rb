@@ -22,6 +22,7 @@ cat1.on(:start) do
 	set_bomb_flag = false
 	grid_centers_in_initial_pos = []
 	got_items_pos = [] #取得した後に探索を行っていないアイテムの座標
+	got_traps_pos = [] #取得した後に探索を行っていないトラップの座標
 	routes = nil
 	checked_item_exsistence = true
 	prev_routes = nil
@@ -354,10 +355,19 @@ cat1.on(:start) do
 			got_items_pos.push([player_x, player_y])
 		end
 
+		if traps.include?([player_x, player_y]) && !got_traps_pos.include?([player_x, player_y])
+			got_traps_pos.push([player_x, player_y])
+		end
+
 		p :got_items_pos, got_items_pos
+		p :got_traps_pos, got_traps_pos
 
 		got_items_pos.each do |got_item_pos|
 			all_treasures.delete([got_item_pos[0], got_item_pos[1]])
+		end
+
+		got_traps_pos.each do |got_trap_pos|
+			traps.delete([got_trap_pos[0], got_trap_pos[1]])
 		end
 
 		# if set_bomb_flag
@@ -743,9 +753,21 @@ cat1.on(:start) do
 		traps = locate_objects(cent:[8, 8], sq_size: 15)
 
 		traps_a = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["A"]))
+		got_traps_pos.each do |got_trap_pos|
+			traps_a.delete([got_trap_pos[0], got_trap_pos[1]])
+		end
 		traps_b = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["B"]))
+		got_traps_pos.each do |got_trap_pos|
+			traps_b.delete([got_trap_pos[0], got_trap_pos[1]])
+		end
 		traps_c = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C"]))
+		got_traps_pos.each do |got_trap_pos|
+			traps_c.delete([got_trap_pos[0], got_trap_pos[1]])
+		end
 		traps_d = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["D"]))
+		got_traps_pos.each do |got_trap_pos|
+			traps_d.delete([got_trap_pos[0], got_trap_pos[1]])
+		end
 
 		make_decision_time_start = Time.now
 
@@ -1011,7 +1033,9 @@ cat1.on(:start) do
 							routes = dijkstra_route([player_x, player_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + kowaseru + traps_a + traps_b + traps_c + traps_d)
 						end
 						if routes[1] == nil
+							p "Changing the route..."
 							routes = dijkstra_route([player_x, player_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_b + traps_c + traps_d)
+							p :routes, routes
 							#手持ちのダイナマイトで足りない場合
 							kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 							if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + kowaseru + traps_b + traps_c + traps_d).length < 2
@@ -1020,7 +1044,9 @@ cat1.on(:start) do
 							end
 						end
 						if routes[1] == nil
+							p "Changing the route..."
 							routes = dijkstra_route([player_x, player_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_c + traps_d)
+							p :routes, routes
 							#手持ちのダイナマイトで足りない場合
 							kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 							if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + kowaseru + traps_c + traps_d).length < 2
@@ -1029,6 +1055,7 @@ cat1.on(:start) do
 							end
 						end
 						if routes[1] == nil
+							p "Changing the route..."
 							available_points = clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:value]
 			
 							trap_A_in_routes = dijkstra_route([player_x, player_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + traps_d).select{ |r| traps_a.include?(r) }.length
@@ -1040,6 +1067,7 @@ cat1.on(:start) do
 							p :available_points, available_points
 							if available_points > 0
 								routes = dijkstra_route([player_x, player_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_d).size }[0], EXCEPT + traps_d)
+								p :routes, routes
 								#手持ちのダイナマイトで足りない場合
 								kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 								if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], clusters_value.sort_by { |_, v| -v[:value_per_distance] }[i][1][:cluster].sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT + traps_c + traps_d).size }[0], EXCEPT + kowaseru + traps_d).length < 2
