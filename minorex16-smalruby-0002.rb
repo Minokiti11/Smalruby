@@ -218,6 +218,32 @@ cat1.on(:start) do
 		end
 	end
 
+	# ルートに含まれる減点アイテムから、獲得できるポイントを計算する
+	def calc_available_points(item_value, routes, got_traps_pos)
+		traps_A = locate_objects(cent: [8, 8], sq_size: 15, objects: ["A"])
+		got_traps_pos.each do |got_trap_pos|
+			traps_A.delete([got_trap_pos[0], got_trap_pos[1]])
+		end
+		traps_B = locate_objects(cent: [8, 8], sq_size: 15, objects: ["B"])
+		got_traps_pos.each do |got_trap_pos|
+			traps_B.delete([got_trap_pos[0], got_trap_pos[1]])
+		end
+		traps_C = locate_objects(cent: [8, 8], sq_size: 15, objects: ["C"])
+		got_traps_pos.each do |got_trap_pos|
+			traps_C.delete([got_trap_pos[0], got_trap_pos[1]])
+		end
+		traps_D = locate_objects(cent: [8, 8], sq_size: 15, objects: ["D"])
+		got_traps_pos.each do |got_trap_pos|
+			traps_D.delete([got_trap_pos[0], got_trap_pos[1]])
+		end
+		trap_A_in_routes = routes.count { |cell| traps_A.include?(cell) }
+		trap_B_in_routes = routes.count { |cell| traps_B.include?(cell) }
+		trap_C_in_routes = routes.count { |cell| traps_C.include?(cell) }
+		trap_D_in_routes = routes.count { |cell| traps_D.include?(cell) }
+
+		return item_value - (trap_A_in_routes * 10 + trap_B_in_routes * 20 + trap_C_in_routes * 30 + trap_D_in_routes * 40)
+	end
+
 	loop do
 		start_time = Time.now
 		# 2点間の移動経路を[[x, y], ...]形式で返す
@@ -628,24 +654,27 @@ cat1.on(:start) do
 						grid_pos = grid_centers[rand_i]
 						get_map_area(grid_pos[0], grid_pos[1])
 					else
-						rand_x = rand(1..3)
-						rand_y = rand(1..3)
-						if rand_x == 1
-							rand_x = 3
-						elsif rand_x == 2
-							rand_x = 8
+						if turn % 2 == 0
+							rand_x = rand(1..3)
+							rand_y = rand(1..3)
+							if rand_x == 1
+								rand_x = 3
+							elsif rand_x == 2
+								rand_x = 8
+							else
+								rand_x = 13
+							end
+							if rand_y == 1
+								rand_y = 3
+							elsif rand_y == 2
+								rand_y = 8
+							else
+								rand_y = 13
+							end
+							get_map_area(rand_x, rand_y)
 						else
-							rand_x = 13
+							get_map_area(prev_routes[-1][0], prev_routes[-1][1])
 						end
-						if rand_y == 1
-							rand_y = 3
-						elsif rand_y == 2
-							rand_y = 8
-						else
-							rand_y = 13
-						end
-						get_map_area(rand_x, rand_y)
-	
 						if !(other_player_x == nil)
 							other_x = other_player_x
 							other_y = other_player_y
@@ -774,46 +803,212 @@ cat1.on(:start) do
 
 		if turn < 9
 			p :treasures_first, treasures[0]
+			routes_values = {}
 			if treasures[0] != nil
-				routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b + traps_a)
-				other_player_routes = dijkstra_route([other_x, other_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b + traps_a)
-				p :routes, routes
-				p :other_player_routes, other_player_routes
-	
-				if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
-					p "Changing the route..."
-					routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b)
-					p :routes, routes
-					if other_x != nil
-						other_player_routes = dijkstra_route([other_x, other_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b)
-						p :other_player_routes , other_player_routes
-					else
-						p "other_player is missing.."
-					end
+				treasures_e.sort_by!{|treasure| calc_route(dst: treasure).length }
+
+				e_route_except_ABCD = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_c + traps_d + traps_b + traps_a)
+				e_route_except_BCD = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_c + traps_d + traps_b)
+				e_route_except_CD = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_c + traps_d)
+				e_route_except_D = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_d)
+				e_route_not_except_traps = calc_route(dst: treasures_e[0], except_cells: EXCEPT)
+
+				other_player_routes_ABCD = []
+				other_player_routes_BCD = []
+				other_player_routes_CD = []
+				other_player_routes_D = []
+
+				if !(other_x == nil)
+					other_player_routes_ABCD = calc_route(src: [other_x, other_y], dst: treasures_e[0], except_cells: EXCEPT + traps_d + traps_c + traps_b + traps_a)
+					other_player_routes_BCD = calc_route(src: [other_x, other_y], dst: treasures_e[0], except_cells: EXCEPT + traps_d + traps_c + traps_b)
+					other_player_routes_CD = calc_route(src: [other_x, other_y], dst: treasures_e[0], except_cells: EXCEPT + traps_d + traps_c)
+					other_player_routes_D = calc_route(src: [other_x, other_y], dst: treasures_e[0], except_cells: EXCEPT + traps_d)
 				end
-	
-				if routes[1] == nil || (other_x != nil && other_player_routes[1] != nil && other_player_routes.length < routes.length)
-					p "Changing the route..."
-					routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c)
-					p :routes, routes
-					if other_x != nil
-						other_player_routes = dijkstra_route([other_x, other_y], treasures[0], EXCEPT + traps_d + traps_c)
-						p :other_player_routes, other_player_routes
-					else
-						p "other_player is missing.."
-					end
+
+				routes_values["e_route_except_ABCD"] = {
+					routes: e_route_except_ABCD,
+					length: e_route_except_ABCD.size,
+					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入， そうでない場合nilを代入
+					value: calc_available_points(60, e_route_except_ABCD, got_traps_pos)
+
+				}
+				routes_values["e_route_except_BCD"] = {
+					routes: e_route_except_BCD,
+					length: e_route_except_BCD.size,
+					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
+					value: calc_available_points(60, e_route_except_BCD, got_traps_pos)
+				}
+				routes_values["e_route_except_CD"] = {
+					routes: e_route_except_CD,
+					length: e_route_except_CD.size,
+					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
+					value: calc_available_points(60, e_route_except_CD, got_traps_pos)
+				}
+				routes_values["e_route_except_D"] = {
+					routes: e_route_except_D,
+					length: e_route_except_D.size,
+					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
+					value: calc_available_points(60, e_route_except_D, got_traps_pos)
+				}
+
+				p routes_values.select {|key, val| key.start_with?("e") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil)}
+				if routes_values.select {|key, val| key.start_with?("e") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil)}.size != 0
+					p routes_values.select {|key, val| key.start_with?("e") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil)}.sort_by { |key, val| -val[:value] }[0][1]
+					p "max_value_e_route: ", routes_values.select {|key, val| key.start_with?("e") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil)}.sort_by { |key, val| -val[:value] }[0][1][:routes]
 				end
-	
-				kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
-				p :kowaseru_in_routes, kowaseru_in_routes
-				p :num_of_dynamite_you_have, num_of_dynamite_you_have
-	
-				#手持ちのダイナマイトで足りない、またはダイナマイトを使わなくてもさほど距離が変わらない場合
-				if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a).length < 2
-					#壊せる壁を通らない経路を調べる
-					routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b + traps_a)
-					p :except_kowaseru_routes, routes
+
+				treasures_d.sort_by!{|treasure| calc_route(dst: treasure).length }
+
+				d_route_except_ABCD = calc_route(dst: treasures_d[0], except_cells: EXCEPT + traps_c + traps_d + traps_b + traps_a)
+				d_route_except_BCD = calc_route(dst: treasures_d[0], except_cells: EXCEPT + traps_c + traps_d + traps_b)
+				d_route_except_CD = calc_route(dst: treasures_d[0], except_cells: EXCEPT + traps_c + traps_d)
+				d_route_except_D = calc_route(dst: treasures_d[0], except_cells: EXCEPT + traps_d)
+				d_route_not_except_traps = calc_route(dst: treasures_d[0], except_cells: EXCEPT)
+
+				other_player_routes_ABCD = []
+				other_player_routes_BCD = []
+				other_player_routes_CD = []
+				other_player_routes_D = []
+
+				if !(other_x == nil)
+					other_player_routes_ABCD = calc_route(src: [other_x, other_y], dst: treasures_d[0], except_cells: EXCEPT + traps_d + traps_c + traps_b + traps_a)
+					other_player_routes_BCD = calc_route(src: [other_x, other_y], dst: treasures_d[0], except_cells: EXCEPT + traps_d + traps_c + traps_b)
+					other_player_routes_CD = calc_route(src: [other_x, other_y], dst: treasures_d[0], except_cells: EXCEPT + traps_d + traps_c)
+					other_player_routes_D = calc_route(src: [other_x, other_y], dst: treasures_d[0], except_cells: EXCEPT + traps_d)
 				end
+
+				routes_values["d_route_except_ABCD"] = {
+					routes: d_route_except_ABCD,
+					length: d_route_except_ABCD.size,
+					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入， そうでない場合nilを代入
+					value: calc_available_points(40, d_route_except_ABCD, got_traps_pos)
+				}
+				routes_values["d_route_except_BCD"] = {
+					routes: d_route_except_BCD,
+					length: d_route_except_BCD.size,
+					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
+					value: calc_available_points(40, d_route_except_BCD, got_traps_pos)
+				}
+				routes_values["d_route_except_CD"] = {
+					routes: d_route_except_CD,
+					length: d_route_except_CD.size,
+					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
+					value: calc_available_points(40, d_route_except_CD, got_traps_pos)
+				}
+				routes_values["d_route_except_D"] = {
+					routes: d_route_except_D,
+					length: d_route_except_D.size,
+					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
+					value: calc_available_points(40, d_route_except_D, got_traps_pos)
+				}
+				if routes_values.select {|key, val| key.start_with?("d") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.size != 0
+					p "max_value_d_route: ", routes_values.select {|key, val| key.start_with?("d") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.sort_by { |key, val| -val[:value] }[0][1][:routes]
+				end
+
+				treasures_c.sort_by!{|treasure| calc_route(dst: treasure).length }
+
+				c_route_except_ABCD = calc_route(dst: treasures_c[0], except_cells: EXCEPT + traps_c + traps_d + traps_b + traps_a)
+				c_route_except_BCD = calc_route(dst: treasures_c[0], except_cells: EXCEPT + traps_c + traps_d + traps_b)
+				c_route_except_CD = calc_route(dst: treasures_c[0], except_cells: EXCEPT + traps_c + traps_d)
+				c_route_except_D = calc_route(dst: treasures_c[0], except_cells: EXCEPT + traps_d)
+				c_route_not_except_traps = calc_route(dst: treasures_c[0], except_cells: EXCEPT)
+
+				other_player_routes_ABCD = []
+				other_player_routes_BCD = []
+				other_player_routes_CD = []
+				other_player_routes_D = []
+
+				if !(other_x == nil)
+					other_player_routes_ABCD = calc_route(src: [other_x, other_y], dst: treasures_c[0], except_cells: EXCEPT + traps_d + traps_c + traps_b + traps_a)
+					other_player_routes_BCD = calc_route(src: [other_x, other_y], dst: treasures_c[0], except_cells: EXCEPT + traps_d + traps_c + traps_b)
+					other_player_routes_CD = calc_route(src: [other_x, other_y], dst: treasures_c[0], except_cells: EXCEPT + traps_d + traps_c)
+					other_player_routes_D = calc_route(src: [other_x, other_y], dst: treasures_c[0], except_cells: EXCEPT + traps_d)
+				end
+
+				routes_values["c_route_except_ABCD"] = {
+					routes: c_route_except_ABCD,
+					length: c_route_except_ABCD.size,
+					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入， そうでない場合nilを代入
+					value: calc_available_points(30, c_route_except_ABCD, got_traps_pos)
+				}
+				routes_values["c_route_except_BCD"] = {
+					routes: c_route_except_BCD,
+					length: c_route_except_BCD.size,
+					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
+					value: calc_available_points(30, c_route_except_BCD, got_traps_pos)
+				}
+				routes_values["c_route_except_CD"] = {
+					routes: c_route_except_CD,
+					length: c_route_except_CD.size,
+					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
+					value: calc_available_points(30, c_route_except_CD, got_traps_pos)
+				}
+				routes_values["c_route_except_D"] = {
+					routes: c_route_except_D,
+					length: c_route_except_D.size,
+					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
+					value: calc_available_points(30, c_route_except_D, got_traps_pos)
+				}
+				if routes_values.select {|key, val| key.start_with?("c") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.size != 0
+					p "max_value_c_route: ", routes_values.select {|key, val| key.start_with?("c") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.sort_by { |key, val| -val[:value] }[0][1][:routes]
+				end
+
+				treasures_b.sort_by!{|treasure| calc_route(dst: treasure).length }
+
+				b_route_except_ABCD = calc_route(dst: treasures_b[0], except_cells: EXCEPT + traps_c + traps_d + traps_b + traps_a)
+				b_route_except_BCD = calc_route(dst: treasures_b[0], except_cells: EXCEPT + traps_c + traps_d + traps_b)
+				b_route_except_CD = calc_route(dst: treasures_b[0], except_cells: EXCEPT + traps_c + traps_d)
+				b_route_except_D = calc_route(dst: treasures_b[0], except_cells: EXCEPT + traps_d)
+				b_route_not_except_traps = calc_route(dst: treasures_b[0], except_cells: EXCEPT)
+
+				other_player_routes_ABCD = []
+				other_player_routes_BCD = []
+				other_player_routes_CD = []
+				other_player_routes_D = []
+
+				if !(other_x == nil)
+					other_player_routes_ABCD = calc_route(src: [other_x, other_y], dst: treasures_b[0], except_cells: EXCEPT + traps_d + traps_c + traps_b + traps_a)
+					other_player_routes_BCD = calc_route(src: [other_x, other_y], dst: treasures_b[0], except_cells: EXCEPT + traps_d + traps_c + traps_b)
+					other_player_routes_CD = calc_route(src: [other_x, other_y], dst: treasures_b[0], except_cells: EXCEPT + traps_d + traps_c)
+					other_player_routes_D = calc_route(src: [other_x, other_y], dst: treasures_b[0], except_cells: EXCEPT + traps_d)
+				end
+
+				routes_values["b_route_except_ABCD"] = {
+					routes: b_route_except_ABCD,
+					length: b_route_except_ABCD.size,
+					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入， そうでない場合nilを代入
+					value: calc_available_points(20, b_route_except_ABCD, got_traps_pos)
+				}
+				routes_values["b_route_except_BCD"] = {
+					routes: b_route_except_BCD,
+					length: b_route_except_BCD.size,
+					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
+					value: calc_available_points(20, b_route_except_BCD, got_traps_pos)
+				}
+				routes_values["b_route_except_CD"] = {
+					routes: b_route_except_CD,
+					length: b_route_except_CD.size,
+					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
+					value: calc_available_points(20, b_route_except_CD, got_traps_pos)
+				}
+				routes_values["b_route_except_D"] = {
+					routes: b_route_except_D,
+					length: b_route_except_D.size,
+					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
+					value: calc_available_points(20, b_route_except_D, got_traps_pos)
+				}
+
+				if routes_values.select {|key, val| key.start_with?("b") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.size != 0
+					p "max_value_b_route: ", routes_values.select {|key, val| key.start_with?("b") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.sort_by { |key, val| -val[:value] }[0][1][:routes]
+				end
+
+				routes_values = routes_values.select {|key, val| val[:length] < val[:other_player_length] && !(val[:routes][1] == nil)}.sort_by { |key, val| -(val[:value] / val[:length]) }
+
+				max_value_routes = routes_values[0][1][:routes]
+
+				p :max_value_routes, max_value_routes
+
+				routes = max_value_routes
 			end
 	
 			i = 0
