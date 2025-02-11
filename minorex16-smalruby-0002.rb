@@ -455,24 +455,17 @@ cat1.on(:start) do
 					p "index: ", index
 					got_items.each do |got_item|
 						if cluster[1][:cluster].include?(got_item)
+							puts "#{got_item}のアイテムが取得されました．クラスタを更新します．．"
 							if cluster[1][:cluster].length == 1
-								puts "#{got_item}のアイテムが取得されました．クラスタを削除します．．"
-								p "clusters_value: ", clusters_value
 								clusters.delete(cluster[1][:cluster])
 								clusters_value.delete(clusters_value.key(cluster[1]))
-								p "clusters_value: ", clusters_value
 							else
-								puts "#{got_item}のアイテムが取得されました．クラスタを更新します．．"
-								p "clusters_value: ", clusters_value
 								clusters.each_with_index do |cluster_cell, i|
 									if cluster_cell.include?(got_item)
 										clusters[i].delete(got_item)
 										clusters_value[clusters_value.key(cluster[1])][:cluster] = clusters[i]
 									end
 								end
-								
-								
-								p "clusters_value: ", clusters_value
 								cluster_value = 0
 								cluster[1][:cluster].each do |cell|
 									item = map(cell[0], cell[1])
@@ -494,6 +487,7 @@ cat1.on(:start) do
 								clusters_value[clusters_value.key(cluster[1])][:distance] = dijkstra_route([player_x, player_y], cluster[1][:cluster][-1], EXCEPT).size
 								clusters_value[clusters_value.key(cluster[1])][:value_per_distance] = cluster_value / clusters_value[clusters_value.key(cluster[1])][:distance]
 							end
+							p "clusters_value: ", clusters_value
 						end
 					end
 				end
@@ -675,19 +669,22 @@ cat1.on(:start) do
 						else
 							get_map_area(prev_routes[-1][0], prev_routes[-1][1])
 						end
-						if !(other_player_x == nil)
-							other_x = other_player_x
-							other_y = other_player_y
-							other_footprint.push([other_x, other_y])
-						else
-							other_x = nil
-							other_y = nil
-						end
 					end
-
+					if !(other_player_x == nil)
+						other_x = other_player_x
+						other_y = other_player_y
+						other_footprint.push([other_x, other_y])
+						turn_of_found_out_opponent = turn
+					else
+						other_x = nil
+						other_y = nil
+					end
 				else
-					p "Searching for other player..."
-					get_map_area(other_x,other_y)
+					if (turn - turn_of_found_out_opponent % 2 == 1)
+						get_map_area(other_x, other_y)
+					else
+						get_map_area(prev_routes[-1][0], prev_routes[-1][1])
+					end
 					if !(other_player_x == nil && other_x == nil)
 						other_x = other_player_x
 						other_y = other_player_y
@@ -1298,6 +1295,7 @@ cat1.on(:start) do
 				end
 			else
 				p :treasures_first, treasures[0]
+				aim_cluster = [treasures[0]]
 				if treasures[0] != nil
 					routes = dijkstra_route([player_x, player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b + traps_a)
 					other_player_routes = dijkstra_route([other_player_x, other_player_y], treasures[0], EXCEPT + traps_d + traps_c + traps_b + traps_a)
@@ -1554,17 +1552,14 @@ cat1.on(:start) do
 
 		puts "Make Decision Time: #{make_decision_time}s"
 
-
 		puts "go_to_goal_flag: ", go_to_goal_flag
 
 		route_to_goal = dijkstra_route([routes[-1][0], routes[-1][1]], [goal_x, goal_y], except_without_goal) 
 		num_of_water_in_route_to_goal = route_to_goal.select{ |r| water_cell.include?(r) }.length
-		if go_to_goal_flag || (turn >= 35 && (route_to_goal.length + num_of_water_in_route_to_goal) <= 51 - turn)
+		if go_to_goal_flag || (turn >= 35 && (routes.length - 1 + route_to_goal.length + num_of_water_in_route_to_goal) > 51 - turn)
 			route_to_goal = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal + traps)
-			p :routes_to_goal_except_all_traps, route_to_goal
 			kowaseru_in_routes = route_to_goal.select{ |r| kowaseru.include?(r) }.length
-			p :kowaseru_in_routes, kowaseru_in_routes
-			p :num_of_dynamite_you_have, num_of_dynamite_you_have
+
 			if kowaseru_in_routes > num_of_dynamite_you_have
 				p "lack of dynamites."
 				route_to_goal = dijkstra_route([player_x, player_y], [goal_x, goal_y], except_without_goal + kowaseru)
@@ -1610,10 +1605,8 @@ cat1.on(:start) do
 				index = nil
 				p :aim_cluster, aim_cluster
 				clusters_value.each do |key, value|
-					p value[:cluster]
 					if value[:cluster] == aim_cluster
 						index = key
-						p :index, index
 					end
 				end
 				if aim_cluster == nil
