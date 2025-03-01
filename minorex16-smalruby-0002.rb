@@ -652,20 +652,8 @@ cat1.on(:start) do
 						if turn % 2 == 0
 							rand_x = rand(1..3)
 							rand_y = rand(1..3)
-							if rand_x == 1
-								rand_x = 3
-							elsif rand_x == 2
-								rand_x = 8
-							else
-								rand_x = 13
-							end
-							if rand_y == 1
-								rand_y = 3
-							elsif rand_y == 2
-								rand_y = 8
-							else
-								rand_y = 13
-							end
+							rand_x = 3 + 5 * (rand_x - 1)
+							rand_y = 3 + 5 * (rand_y - 1)
 							get_map_area(rand_x, rand_y)
 						else
 							get_map_area(prev_routes[-1][0], prev_routes[-1][1])
@@ -676,7 +664,7 @@ cat1.on(:start) do
 						other_y = other_player_y
 						other_footprint.push([other_x, other_y])
 						turn_of_found_out_opponent = turn
-						p "相手を発見しました。turn_of_found_out_opponent: ", turn_of_found_out_opponent
+						puts "turn_of_found_out_opponent: ", turn_of_found_out_opponent
 					else
 						other_x = nil
 						other_y = nil
