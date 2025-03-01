@@ -750,7 +750,6 @@ cat1.on(:start) do
 			routes_values = {}
 			if treasures[0] != nil
 				treasures_e.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size + dijkstra_route([player_x, player_y], treasure, EXCEPT).select{ |r| water_cell.include?(r) }.length }
-				p :treasures_e, treasures_e
 				if treasures_e[0] != nil
 					e_route_except_ABCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_e[0], EXCEPT + traps_d + traps_c + traps_b + traps_a)
 					e_route_except_ABCD = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_d + traps_c + traps_b + traps_a)
