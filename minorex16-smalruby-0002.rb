@@ -397,52 +397,6 @@ cat1.on(:start) do
 			traps.delete([got_trap_pos[0], got_trap_pos[1]])
 		end
 
-		# if set_bomb_flag
-		# 	set_bomb_flag = false
-		# end
-
-		# if other_footprint.length > 0 && !not_searching_flag
-		# 	decided_item = decide_item_based_on_recent_path(other_footprint, all_treasures)
-		# 	p :decided_item, decided_item
-
-		# 	traps_c = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["C"]))
-		# 	traps_d = locate_objects(cent: ([8, 8]), sq_size: 15, objects: (["D"]))
-
-		# 	original_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d)
-		# 	p :original_route, original_route
-		# 	if original_route[1] != nil
-		# 		blocked_cells = []
-		# 		original_route.each do |cell|
-		# 			if cell == original_route[-1]
-		# 				break
-		# 			end
-		# 			# 塞がれるマスを一時的に通れないようにする
-		# 			new_route = calc_route(src: [other_footprint[-1][0], other_footprint[-1][1]], dst: decided_item, except_cells: traps_c + traps_d + [cell])
-		# 			p :cell, cell
-
-		# 			p :new_route, new_route
-
-		# 			# 経路がなくなるか、経路の長さが10以上増える場合
-		# 			if new_route[1].nil? || (new_route.length + new_route.select{ |r| water_cell.include?(r) }.length - (original_route.length + original_route.select{ |r| water_cell.include?(r) }.length) >= 3)
-		# 				blocked_cells << cell
-		# 			end
-		# 		end
-		# 		p :blocked_cells, blocked_cells
-		# 		blocked_cells.each do |cell|
-		# 			if all_treasures.include?(cell) || traps.include?(cell)
-		# 				blocked_cells.delete(cell)
-		# 			end
-		# 		end
-		# 		p :blocked_cells, blocked_cells
-		# 	end
-		# 	if blocked_cells
-		# 		if blocked_cells.length > 0 && blocked_cells.include?([player_x, player_y])
-		# 			set_bomb(blocked_cells[blocked_cells.index([player_x, player_y])])
-		# 			set_bomb_flag = true
-		# 		end
-		# 	end
-		# end
-
 		kowaseru = locate_objects(cent: ([8, 8]), sq_size: 15, objects: ([5]))
 		if turn >= 10 && prev_treasures
 			clusters_value.each_with_index do |cluster, index|
@@ -637,6 +591,7 @@ cat1.on(:start) do
 			end
 		end
 
+		# 9ターン以降の探索
 		if turn >= 9
 			if !not_searching_flag && !after_bomb && !set_bomb_flag
 				if other_x == nil || other_y == nil
@@ -689,7 +644,6 @@ cat1.on(:start) do
 			end
 		end
 		
-
 		if after_bomb
 			get_map_area(player_x, player_y)
 			after_bomb = false
@@ -790,16 +744,21 @@ cat1.on(:start) do
 
 		make_decision_time_start = Time.now
 
+		# 9ターン以内の意思決定アルゴリズム
 		if turn < 9
 			p :treasures_first, treasures[0]
 			routes_values = {}
 			if treasures[0] != nil
-				treasures_e.sort_by!{|treasure| calc_route(dst: treasure).length }
-
-				e_route_except_ABCD = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_c + traps_d + traps_b + traps_a)
+				treasures_e.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size + dijkstra_route([player_x, player_y], treasure, EXCEPT).select{ |r| water_cell.include?(r) }.length }
+				e_route_except_ABCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_e[0], EXCEPT + traps_d + traps_c + traps_b + traps_a)
+				e_route_except_ABCD = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_d + traps_c + traps_b + traps_a)
+				e_route_except_BCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_e[0], EXCEPT + traps_d + traps_c + traps_b)
 				e_route_except_BCD = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_c + traps_d + traps_b)
+				e_route_except_CD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_e[0], EXCEPT + traps_d + traps_c)
 				e_route_except_CD = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_c + traps_d)
+				e_route_except_D_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_e[0], EXCEPT + traps_d)
 				e_route_except_D = calc_route(dst: treasures_e[0], except_cells: EXCEPT + traps_d)
+				e_route_not_except_traps_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_e[0], EXCEPT)
 				e_route_not_except_traps = calc_route(dst: treasures_e[0], except_cells: EXCEPT)
 
 				other_player_routes_ABCD = []
@@ -817,9 +776,14 @@ cat1.on(:start) do
 				routes_values["e_route_except_ABCD"] = {
 					routes: e_route_except_ABCD,
 					length: e_route_except_ABCD.size,
-					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入， そうでない場合nilを代入
+					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入，そうでない場合nilを代入
 					value: calc_available_points(60, e_route_except_ABCD, got_traps_pos)
-
+				}
+				routes_values["e_route_except_ABCD_allow_kowaseru"] = {
+					routes: e_route_except_ABCD_allow_kowaseru,
+					length: e_route_except_ABCD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100),
+					value: e_route_except_ABCD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(60, e_route_except_ABCD_allow_kowaseru, got_traps_pos)
 				}
 				routes_values["e_route_except_BCD"] = {
 					routes: e_route_except_BCD,
@@ -827,17 +791,35 @@ cat1.on(:start) do
 					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
 					value: calc_available_points(60, e_route_except_BCD, got_traps_pos)
 				}
+				routes_values["e_route_except_BCD_allow_kowaseru"] = {
+					routes: e_route_except_BCD_allow_kowaseru,
+					length: e_route_except_BCD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
+					value: e_route_except_BCD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(60, e_route_except_BCD_allow_kowaseru, got_traps_pos)
+				}
 				routes_values["e_route_except_CD"] = {
 					routes: e_route_except_CD,
 					length: e_route_except_CD.size,
 					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
 					value: calc_available_points(60, e_route_except_CD, got_traps_pos)
 				}
+				routes_values["e_route_except_CD_allow_kowaseru"] = {
+					routes: e_route_except_CD_allow_kowaseru,
+					length: e_route_except_CD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
+					value: e_route_except_CD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(60, e_route_except_CD_allow_kowaseru, got_traps_pos)
+				}
 				routes_values["e_route_except_D"] = {
 					routes: e_route_except_D,
 					length: e_route_except_D.size,
 					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
 					value: calc_available_points(60, e_route_except_D, got_traps_pos)
+				}
+				routes_values["e_route_except_D_allow_kowaseru"] = {
+					routes: e_route_except_D_allow_kowaseru,
+					length: e_route_except_D_allow_kowaseru.size,
+					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
+					value: e_route_except_D_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(60, e_route_except_D_allow_kowaseru, got_traps_pos)
 				}
 
 				p routes_values.select {|key, val| key.start_with?("e") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil)}
@@ -846,12 +828,16 @@ cat1.on(:start) do
 					p "max_value_e_route: ", routes_values.select {|key, val| key.start_with?("e") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil)}.sort_by { |key, val| -val[:value] }[0][1][:routes]
 				end
 
-				treasures_d.sort_by!{|treasure| calc_route(dst: treasure).length }
+				treasures_d.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size + dijkstra_route([player_x, player_y], treasure, EXCEPT).select{ |r| water_cell.include?(r) }.length }
 
 				d_route_except_ABCD = calc_route(dst: treasures_d[0], except_cells: EXCEPT + traps_c + traps_d + traps_b + traps_a)
+				d_route_except_ABCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_d[0], EXCEPT + traps_c + traps_d + traps_b + traps_a)
 				d_route_except_BCD = calc_route(dst: treasures_d[0], except_cells: EXCEPT + traps_c + traps_d + traps_b)
+				d_route_except_BCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_d[0], EXCEPT + traps_c + traps_d + traps_b)
 				d_route_except_CD = calc_route(dst: treasures_d[0], except_cells: EXCEPT + traps_c + traps_d)
+				d_route_except_CD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_d[0], EXCEPT + traps_c + traps_d)
 				d_route_except_D = calc_route(dst: treasures_d[0], except_cells: EXCEPT + traps_d)
+				d_route_except_D_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_d[0], EXCEPT + traps_d)
 				d_route_not_except_traps = calc_route(dst: treasures_d[0], except_cells: EXCEPT)
 
 				other_player_routes_ABCD = []
@@ -869,8 +855,14 @@ cat1.on(:start) do
 				routes_values["d_route_except_ABCD"] = {
 					routes: d_route_except_ABCD,
 					length: d_route_except_ABCD.size,
-					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入， そうでない場合nilを代入
+					other_player_length: (other_player_routes_ABCD.size >= 2 ? other_player_routes_ABCD.size : 100),
 					value: calc_available_points(40, d_route_except_ABCD, got_traps_pos)
+				}
+				routes_values["d_route_except_ABCD_allow_kowaseru"] = {
+					routes: d_route_except_ABCD_allow_kowaseru,
+					length: d_route_except_ABCD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_ABCD.size >= 2 ? other_player_routes_ABCD.size : 100),
+					value: d_route_except_ABCD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(40, d_route_except_ABCD_allow_kowaseru, got_traps_pos)
 				}
 				routes_values["d_route_except_BCD"] = {
 					routes: d_route_except_BCD,
@@ -878,11 +870,23 @@ cat1.on(:start) do
 					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
 					value: calc_available_points(40, d_route_except_BCD, got_traps_pos)
 				}
+				routes_values["d_route_except_BCD_allow_kowaseru"] = {
+					routes: d_route_except_BCD_allow_kowaseru,
+					length: d_route_except_BCD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
+					value: d_route_except_BCD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(40, d_route_except_BCD_allow_kowaseru, got_traps_pos)
+				}
 				routes_values["d_route_except_CD"] = {
 					routes: d_route_except_CD,
 					length: d_route_except_CD.size,
 					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
 					value: calc_available_points(40, d_route_except_CD, got_traps_pos)
+				}
+				routes_values["d_route_except_CD_allow_kowaseru"] = {
+					routes: d_route_except_CD_allow_kowaseru,
+					length: d_route_except_CD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
+					value: d_route_except_CD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(40, d_route_except_CD_allow_kowaseru, got_traps_pos)
 				}
 				routes_values["d_route_except_D"] = {
 					routes: d_route_except_D,
@@ -890,16 +894,26 @@ cat1.on(:start) do
 					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
 					value: calc_available_points(40, d_route_except_D, got_traps_pos)
 				}
+				routes_values["d_route_except_D_allow_kowaseru"] = {
+					routes: d_route_except_D_allow_kowaseru,
+					length: d_route_except_D_allow_kowaseru.size,
+					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
+					value: d_route_except_D_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(40, d_route_except_D_allow_kowaseru, got_traps_pos)
+				}
 				if routes_values.select {|key, val| key.start_with?("d") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.size != 0
 					p "max_value_d_route: ", routes_values.select {|key, val| key.start_with?("d") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.sort_by { |key, val| -val[:value] }[0][1][:routes]
 				end
 
-				treasures_c.sort_by!{|treasure| calc_route(dst: treasure).length }
+				treasures_c.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size + dijkstra_route([player_x, player_y], treasure, EXCEPT).select{ |r| water_cell.include?(r) }.length }
 
 				c_route_except_ABCD = calc_route(dst: treasures_c[0], except_cells: EXCEPT + traps_c + traps_d + traps_b + traps_a)
+				c_route_except_ABCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_c[0], EXCEPT + traps_c + traps_d + traps_b + traps_a)
 				c_route_except_BCD = calc_route(dst: treasures_c[0], except_cells: EXCEPT + traps_c + traps_d + traps_b)
+				c_route_except_BCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_c[0], EXCEPT + traps_c + traps_d + traps_b)
 				c_route_except_CD = calc_route(dst: treasures_c[0], except_cells: EXCEPT + traps_c + traps_d)
+				c_route_except_CD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_c[0], EXCEPT + traps_c + traps_d)
 				c_route_except_D = calc_route(dst: treasures_c[0], except_cells: EXCEPT + traps_d)
+				c_route_except_D_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_c[0], EXCEPT + traps_d)
 				c_route_not_except_traps = calc_route(dst: treasures_c[0], except_cells: EXCEPT)
 
 				other_player_routes_ABCD = []
@@ -917,8 +931,14 @@ cat1.on(:start) do
 				routes_values["c_route_except_ABCD"] = {
 					routes: c_route_except_ABCD,
 					length: c_route_except_ABCD.size,
-					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入， そうでない場合nilを代入
+					other_player_length: (other_player_routes_ABCD.size >= 2 ? other_player_routes_ABCD.size : 100),
 					value: calc_available_points(30, c_route_except_ABCD, got_traps_pos)
+				}
+				routes_values["c_route_except_ABCD_allow_kowaseru"] = {
+					routes: c_route_except_ABCD_allow_kowaseru,
+					length: c_route_except_ABCD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_ABCD.size >= 2 ? other_player_routes_ABCD.size : 100),
+					value: c_route_except_ABCD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(30, c_route_except_ABCD_allow_kowaseru, got_traps_pos)
 				}
 				routes_values["c_route_except_BCD"] = {
 					routes: c_route_except_BCD,
@@ -926,11 +946,23 @@ cat1.on(:start) do
 					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
 					value: calc_available_points(30, c_route_except_BCD, got_traps_pos)
 				}
+				routes_values["c_route_except_BCD_allow_kowaseru"] = {
+					routes: c_route_except_BCD_allow_kowaseru,
+					length: c_route_except_BCD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
+					value: c_route_except_BCD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(30, c_route_except_BCD_allow_kowaseru, got_traps_pos)
+				}
 				routes_values["c_route_except_CD"] = {
 					routes: c_route_except_CD,
 					length: c_route_except_CD.size,
 					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
 					value: calc_available_points(30, c_route_except_CD, got_traps_pos)
+				}
+				routes_values["c_route_except_CD_allow_kowaseru"] = {
+					routes: c_route_except_CD_allow_kowaseru,
+					length: c_route_except_CD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
+					value: c_route_except_CD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(30, c_route_except_CD_allow_kowaseru, got_traps_pos)
 				}
 				routes_values["c_route_except_D"] = {
 					routes: c_route_except_D,
@@ -938,16 +970,26 @@ cat1.on(:start) do
 					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
 					value: calc_available_points(30, c_route_except_D, got_traps_pos)
 				}
+				routes_values["c_route_except_D_allow_kowaseru"] = {
+					routes: c_route_except_D_allow_kowaseru,
+					length: c_route_except_D_allow_kowaseru.size,
+					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
+					value: c_route_except_D_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(30, c_route_except_D_allow_kowaseru, got_traps_pos)
+				}
 				if routes_values.select {|key, val| key.start_with?("c") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.size != 0
 					p "max_value_c_route: ", routes_values.select {|key, val| key.start_with?("c") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.sort_by { |key, val| -val[:value] }[0][1][:routes]
 				end
 
-				treasures_b.sort_by!{|treasure| calc_route(dst: treasure).length }
+				treasures_b.sort_by!{|treasure| dijkstra_route([player_x, player_y], treasure, EXCEPT).size + dijkstra_route([player_x, player_y], treasure, EXCEPT).select{ |r| water_cell.include?(r) }.length }
 
 				b_route_except_ABCD = calc_route(dst: treasures_b[0], except_cells: EXCEPT + traps_c + traps_d + traps_b + traps_a)
+				b_route_except_ABCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_b[0], EXCEPT + traps_c + traps_d + traps_b + traps_a)
 				b_route_except_BCD = calc_route(dst: treasures_b[0], except_cells: EXCEPT + traps_c + traps_d + traps_b)
+				b_route_except_BCD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_b[0], EXCEPT + traps_c + traps_d + traps_b)
 				b_route_except_CD = calc_route(dst: treasures_b[0], except_cells: EXCEPT + traps_c + traps_d)
+				b_route_except_CD_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_b[0], EXCEPT + traps_c + traps_d)
 				b_route_except_D = calc_route(dst: treasures_b[0], except_cells: EXCEPT + traps_d)
+				b_route_except_D_allow_kowaseru = dijkstra_route([player_x, player_y], treasures_b[0], EXCEPT + traps_d)
 				b_route_not_except_traps = calc_route(dst: treasures_b[0], except_cells: EXCEPT)
 
 				other_player_routes_ABCD = []
@@ -968,11 +1010,23 @@ cat1.on(:start) do
 					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100), #other_xやother_routes[1]がnilではないならroutesのlengthを代入， そうでない場合nilを代入
 					value: calc_available_points(20, b_route_except_ABCD, got_traps_pos)
 				}
+				routes_values["b_route_except_ABCD_allow_kowaseru"] = {
+					routes: b_route_except_ABCD_allow_kowaseru,
+					length: b_route_except_ABCD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_ABCD.length >= 2 ? other_player_routes_ABCD.length : 100),
+					value: b_route_except_ABCD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(20, b_route_except_ABCD_allow_kowaseru, got_traps_pos)
+				}
 				routes_values["b_route_except_BCD"] = {
 					routes: b_route_except_BCD,
 					length: b_route_except_BCD.size,
 					other_player_length: (other_player_routes_BCD.size >= 2 ? other_player_routes_BCD.size : 100),
 					value: calc_available_points(20, b_route_except_BCD, got_traps_pos)
+				}
+				routes_values["b_route_except_BCD_allow_kowaseru"] = {
+					routes: b_route_except_BCD_allow_kowaseru,
+					length: b_route_except_BCD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_BCD.length >= 2 ? other_player_routes_BCD.length : 100),
+					value: b_route_except_BCD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(20, b_route_except_BCD_allow_kowaseru, got_traps_pos)
 				}
 				routes_values["b_route_except_CD"] = {
 					routes: b_route_except_CD,
@@ -980,11 +1034,23 @@ cat1.on(:start) do
 					other_player_length: (other_player_routes_CD.size >= 2 ? other_player_routes_CD.size : 100),
 					value: calc_available_points(20, b_route_except_CD, got_traps_pos)
 				}
+				routes_values["b_route_except_CD_allow_kowaseru"] = {
+					routes: b_route_except_CD_allow_kowaseru,
+					length: b_route_except_CD_allow_kowaseru.size,
+					other_player_length: (other_player_routes_CD.length >= 2 ? other_player_routes_CD.length : 100),
+					value: b_route_except_CD_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(20, b_route_except_CD_allow_kowaseru, got_traps_pos)
+				}
 				routes_values["b_route_except_D"] = {
 					routes: b_route_except_D,
 					length: b_route_except_D.size,
 					other_player_length: (other_player_routes_D.size >= 2 ? other_player_routes_D.size : 100),
 					value: calc_available_points(20, b_route_except_D, got_traps_pos)
+				}
+				routes_values["b_route_except_D_allow_kowaseru"] = {
+					routes: b_route_except_D_allow_kowaseru,
+					length: b_route_except_D_allow_kowaseru.size,
+					other_player_length: (other_player_routes_D.length >= 2 ? other_player_routes_D.length : 100),
+					value: b_route_except_D_allow_kowaseru.select{ |r| kowaseru.include?(r) }.length > num_of_dynamite_you_have ? 0 : calc_available_points(20, b_route_except_D_allow_kowaseru, got_traps_pos)
 				}
 
 				if routes_values.select {|key, val| key.start_with?("b") && val[:length] < val[:other_player_length] && !(val[:routes][1] == nil) }.size != 0
@@ -1311,7 +1377,7 @@ cat1.on(:start) do
 
 						kowaseru_in_routes = routes.select{ |r| kowaseru.include?(r) }.length
 						p :kowaseru_in_routes, kowaseru_in_routes
-	
+
 						#手持ちのダイナマイトで足りない、またはダイナマイトを使わなくてもさほど距離が変わらない場合
 						if kowaseru_in_routes > num_of_dynamite_you_have || routes.length - dijkstra_route([player_x, player_y], treasures[0], EXCEPT + kowaseru + traps_d + traps_c + traps_b).length < 2
 							#壊せる壁を通らない経路を調べる
