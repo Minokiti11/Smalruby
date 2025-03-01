@@ -10,6 +10,7 @@ cat1.on(:start) do
 	set_name("minorex16v1.0")
 	connect_game
 	turn = 1
+	turn_of_found_out_opponent = 9
 	start_x = player_x
 	start_y = player_y
 	other_x = nil
@@ -1200,9 +1201,9 @@ cat1.on(:start) do
 					if routes[1] == nil
 						available_points = clusters_value.sort_by { |_, v| -v[:value_per_distance] }[0][1][:value]
 
-						trap_A_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_d).select{ |r| traps_a.include?(r) }.length
-						trap_B_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_d).select{ |r| traps_b.include?(r) }.length
-						trap_C_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT + traps_d).select{ |r| traps_c.include?(r) }.length
+						trap_A_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT).select{ |r| traps_a.include?(r) }.length
+						trap_B_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT).select{ |r| traps_b.include?(r) }.length
+						trap_C_in_routes = dijkstra_route([player_x, player_y], aim_cluster.sort_by{ |c| dijkstra_route([player_x, player_y], c, EXCEPT).size }[0], EXCEPT).select{ |r| traps_c.include?(r) }.length
 						available_points -= trap_A_in_routes * 10
 						available_points -= trap_B_in_routes * 20
 						available_points -= trap_C_in_routes * 30
@@ -1600,37 +1601,32 @@ cat1.on(:start) do
 				available_points -= trap_D_in_routes * 40
 				p :available_points, available_points
 			end
-			route_from_aim_item_to_goal = calc_route(src: routes[-1], dst: [goal_x, goal_y], except_cells: traps)
-			if !(!(route_from_aim_item_to_goal[1] == nil) && routes.length + route_from_aim_item_to_goal.length - 1 < 51 - turn)
-				index = nil
-				p :aim_cluster, aim_cluster
-				clusters_value.each do |key, value|
-					if value[:cluster] == aim_cluster
-						index = key
-					end
-				end
-				if aim_cluster == nil
-					case map(*routes[1])
-					when "a"
-						item_value = 10
-					when "b"
-						item_value = 20
-					when "c"
-						item_value = 30
-					when "d"
-						item_value = 40
-					when "e"
-						item_value = 60
-					else
-						item_value = 0
-					end
-					if item_value < available_points
-						routes = route_to_goal
-					end
-				end
-				if go_to_goal_flag || (!(index.nil?) && clusters_value[index][:value] < available_points)
-					routes = route_to_goal
-				end
+
+			# index = nil
+			# p :aim_cluster, aim_cluster
+			# clusters_value.each do |key, value|
+			# 	if value[:cluster] == aim_cluster
+			# 		index = key
+			# 	end
+			# end
+
+			case map(*routes[-1])
+			when "a"
+				item_value = 10
+			when "b"
+				item_value = 20
+			when "c"
+				item_value = 30
+			when "d"
+				item_value = 40
+			when "e"
+				item_value = 60
+			else
+				item_value = 0
+			end
+
+			if go_to_goal_flag || item_value < available_points || routes[1] == nil
+				routes = route_to_goal
 			end
 		end
 
