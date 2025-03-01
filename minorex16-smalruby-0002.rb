@@ -691,6 +691,9 @@ cat1.on(:start) do
 						other_x = other_player_x
 						other_y = other_player_y
 						other_footprint.push([other_x, other_y])
+					else
+						other_x = nil
+						other_y = nil 
 					end
 				end
 			end
