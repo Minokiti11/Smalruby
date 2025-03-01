@@ -676,6 +676,7 @@ cat1.on(:start) do
 						other_y = other_player_y
 						other_footprint.push([other_x, other_y])
 						turn_of_found_out_opponent = turn
+						p "相手を発見しました。turn_of_found_out_opponent: ", turn_of_found_out_opponent
 					else
 						other_x = nil
 						other_y = nil
@@ -686,13 +687,10 @@ cat1.on(:start) do
 					else
 						get_map_area(prev_routes[-1][0], prev_routes[-1][1])
 					end
-					if !(other_player_x == nil && other_x == nil)
+					if !(other_player_x == nil)
 						other_x = other_player_x
 						other_y = other_player_y
 						other_footprint.push([other_x, other_y])
-					else
-						other_x = nil
-						other_y = nil
 					end
 				end
 			end
