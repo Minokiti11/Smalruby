@@ -639,7 +639,7 @@ cat1.on(:start) do
 
 		if turn >= 9
 			if !not_searching_flag && !after_bomb && !set_bomb_flag
-				if other_x == (nil) || other_y == (nil)
+				if other_x == nil || other_y == nil
 					puts ("losting other player....")
 					if turn <= 15 && other_footprint.length != 0 && other_footprint[-1] != [nil, nil]
 						grid_centers = [[3,3], [3,8], [3,13], [8,3], [8,8], [8,13], [13,3], [13,8], [13,13]]
@@ -672,7 +672,7 @@ cat1.on(:start) do
 						other_y = nil
 					end
 				else
-					if (turn - turn_of_found_out_opponent % 2 == 1)
+					if ((turn - turn_of_found_out_opponent) % 2 == 1)
 						get_map_area(other_x, other_y)
 						if !(other_player_x == nil)
 							other_x = other_player_x
