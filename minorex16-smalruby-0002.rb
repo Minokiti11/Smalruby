@@ -672,16 +672,16 @@ cat1.on(:start) do
 				else
 					if (turn - turn_of_found_out_opponent % 2 == 1)
 						get_map_area(other_x, other_y)
+						if !(other_player_x == nil)
+							other_x = other_player_x
+							other_y = other_player_y
+							other_footprint.push([other_x, other_y])
+						else
+							other_x = nil
+							other_y = nil 
+						end
 					else
 						get_map_area(prev_routes[-1][0], prev_routes[-1][1])
-					end
-					if !(other_player_x == nil)
-						other_x = other_player_x
-						other_y = other_player_y
-						other_footprint.push([other_x, other_y])
-					else
-						other_x = nil
-						other_y = nil 
 					end
 				end
 			end
