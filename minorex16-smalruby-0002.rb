@@ -665,6 +665,7 @@ cat1.on(:start) do
 						other_footprint.push([other_x, other_y])
 						turn_of_found_out_opponent = turn
 						puts "turn_of_found_out_opponent: ", turn_of_found_out_opponent
+						puts "other_player_pos: ", [other_player_x, other_player_y]
 					else
 						other_x = nil
 						other_y = nil
