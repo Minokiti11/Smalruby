@@ -640,6 +640,7 @@ cat1.on(:start) do
 		if turn >= 9
 			if !not_searching_flag && !after_bomb && !set_bomb_flag
 				if other_x == (nil) || other_y == (nil)
+					puts ("losting other player....")
 					if turn <= 15 && other_footprint.length != 0 && other_footprint[-1] != [nil, nil]
 						grid_centers = [[3,3], [3,8], [3,13], [8,3], [8,8], [8,13], [13,3], [13,8], [13,13]]
 						other_player_initial_grid = grid_centers.min_by { |center| (center[0]-other_footprint[-1][0])**2 + (center[1]-other_footprint[-1][1])**2 }
@@ -652,8 +653,8 @@ cat1.on(:start) do
 						if turn % 2 == 0
 							rand_x = rand(1..3)
 							rand_y = rand(1..3)
-							rand_x = 3 + 5 * (rand_x - 1)
-							rand_y = 3 + 5 * (rand_y - 1)
+							rand_x = 3 + (5 * (rand_x - 1))
+							rand_y = 3 + (5 * (rand_y - 1))
 							get_map_area(rand_x, rand_y)
 						else
 							get_map_area(prev_routes[-1][0], prev_routes[-1][1])
