@@ -10,7 +10,7 @@ cat1.on(:start) do
 	set_name("minorex16v1.0")
 	connect_game
 	turn = 1
-	turn_of_found_out_opponent = 10
+	turn_of_found_out_opponent = 9
 	start_x = player_x
 	start_y = player_y
 	other_x = nil
